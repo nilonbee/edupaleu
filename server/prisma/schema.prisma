@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,43 +10,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Users {
-  userId String @id
-  name   String
-  email  String
-}
-
-model Products {
-  productId     String      @id
+// ========================
+// EXISTING BUSINESS MODELS
+// ========================
+model Product {
+  productId     String     @id
   name          String
   price         Float
   rating        Float?
   stockQuantity Int
-  Sales         Sales[]
-  Purchases     Purchases[]
+  sales         Sale[] // ← Changed from "Sales" to "sales" (lowercase, plural)
+  purchases     Purchase[] // ← Changed from "Purchase" to "purchases" (lowercase, plural)
 }
 
-model Sales {
+model Sale {
   saleId      String   @id
   productId   String
   timestamp   DateTime
   quantity    Int
   unitPrice   Float
   totalAmount Float
-  product     Products @relation(fields: [productId], references: [productId])
+  product     Product  @relation(fields: [productId], references: [productId], onDelete: Cascade) // ← Added onDelete: Cascade
 }
 
-model Purchases {
+model Purchase {
   purchaseId String   @id
   productId  String
   timestamp  DateTime
   quantity   Int
   unitCost   Float
   totalCost  Float
-  product    Products @relation(fields: [productId], references: [productId])
+  product    Product  @relation(fields: [productId], references: [productId], onDelete: Cascade) // ← Added onDelete: Cascade
 }
 
-model Expenses {
+model Expense {
   expenseId String   @id
   category  String
   amount    Float
@@ -74,7 +68,7 @@ model ExpenseSummary {
   expenseSummaryId  String              @id
   totalExpenses     Float
   date              DateTime
-  ExpenseByCategory ExpenseByCategory[]
+  expenseByCategory ExpenseByCategory[] // ← Changed from "ExpenseByCategory" to "expenseByCategory"
 }
 
 model ExpenseByCategory {
@@ -83,5 +77,238 @@ model ExpenseByCategory {
   category            String
   amount              BigInt
   date                DateTime
-  expenseSummary      ExpenseSummary @relation(fields: [expenseSummaryId], references: [expenseSummaryId])
+  expenseSummary      ExpenseSummary @relation(fields: [expenseSummaryId], references: [expenseSummaryId], onDelete: Cascade) // ← Added onDelete: Cascade
+}
+
+// ========================
+// STUDY ABROAD MODELS
+// ========================
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50)
+  description String?
+  permissions Json
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+
+  users User[]
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique @db.VarChar(255)
+  password_hash String    @db.VarChar(255)
+  first_name    String    @db.VarChar(100)
+  last_name     String    @db.VarChar(100)
+  role_id       Int
+  phone         String?   @db.VarChar(20)
+  is_active     Boolean   @default(true)
+  last_login    DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now())
+
+  role                 Role                       @relation(fields: [role_id], references: [id], onDelete: Restrict)
+  refreshTokens        RefreshToken[] // ← Changed from "refresh_tokens" to "refreshTokens"
+  studentsCreated      Student[]                  @relation("StudentCreatedBy")
+  applicationsAssigned Application[]              @relation("ApplicationAssignedAgent")
+  applicationsCreated  Application[]              @relation("ApplicationCreatedBy")
+  documentsUploaded    ApplicationDocument[]      @relation("DocumentUploadedBy")
+  communications       ApplicationCommunication[]
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int // ← Changed from "user_id" to "userId"
+  token     String   @db.VarChar(500)
+  expiresAt DateTime // ← Changed from "expires_at" to "expiresAt"
+  isRevoked Boolean  @default(false) // ← Changed from "is_revoked" to "isRevoked"
+  createdAt DateTime @default(now()) // ← Changed from "created_at" to "createdAt"
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Country {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique @db.VarChar(100)
+  code       String   @unique @db.VarChar(3)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  universities University[]
+}
+
+model University {
+  id                   Int      @id @default(autoincrement())
+  name                 String   @db.VarChar(255)
+  country_id           Int
+  website              String?  @db.VarChar(255)
+  email                String?  @db.VarChar(255)
+  phone                String?  @db.VarChar(20)
+  ranking              Int?
+  tuition_fee_range    String?  @db.VarChar(100)
+  intake_months        Json?
+  application_deadline Int?
+  is_active            Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @default(now())
+
+  country      Country       @relation(fields: [country_id], references: [id], onDelete: Restrict)
+  applications Application[]
+
+  @@index([country_id])
+}
+
+model Student {
+  id                      Int              @id @default(autoincrement())
+  student_id              String           @unique @db.VarChar(50)
+  first_name              String           @db.VarChar(100)
+  last_name               String           @db.VarChar(100)
+  date_of_birth           DateTime
+  gender                  Gender
+  email                   String           @unique @db.VarChar(255)
+  phone                   String?          @db.VarChar(20)
+  nationality             String?          @db.VarChar(100)
+  passport_number         String?          @unique @db.VarChar(50)
+  passport_expiry         DateTime?
+  address                 String?
+  city                    String?          @db.VarChar(100)
+  state                   String?          @db.VarChar(100)
+  zip_code                String?          @db.VarChar(20)
+  emergency_contact_name  String?          @db.VarChar(200)
+  emergency_contact_phone String?          @db.VarChar(20)
+  has_english_test        Boolean          @default(false)
+  english_test_type       EnglishTestType? @default(none)
+  english_test_score      String?          @db.VarChar(50)
+  english_test_date       DateTime?
+  created_by              Int
+  created_at              DateTime         @default(now())
+  updated_at              DateTime         @default(now())
+
+  created_by_user         User?                   @relation("StudentCreatedBy", fields: [created_by], references: [id])
+  academic_qualifications AcademicQualification[]
+  applications            Application[]
+
+  @@index([created_by])
+  @@index([email])
+}
+
+model AcademicQualification {
+  id               Int       @id @default(autoincrement())
+  student_id       Int
+  name             String    @db.VarChar(255)
+  education_level  String    @db.VarChar(100)
+  institution_name String    @db.VarChar(255)
+  program_name     String?   @db.VarChar(255)
+  start_date       DateTime?
+  end_date         DateTime?
+  grade            String?   @db.VarChar(50)
+  gpa              Float?
+  is_completed     Boolean   @default(true)
+  document_path    String?   @db.VarChar(500)
+  created_at       DateTime  @default(now())
+
+  student Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@index([student_id])
+}
+
+model ApplicationStatus {
+  id          Int      @id @default(autoincrement())
+  status      String   @unique @db.VarChar(50)
+  description String?
+  created_at  DateTime @default(now())
+
+  applications Application[]
+}
+
+model Application {
+  id                    Int       @id @default(autoincrement())
+  application_ref       String    @unique @db.VarChar(100)
+  student_id            Int
+  university_id         Int
+  intended_program      String    @db.VarChar(255)
+  intake_year           Int
+  intake_month          String    @db.VarChar(20)
+  application_status_id Int?
+  assigned_agent_id     Int?
+  application_fee       Float     @default(0)
+  fee_paid              Boolean   @default(false)
+  submission_date       DateTime?
+  decision_date         DateTime?
+  notes                 String?
+  created_by            Int?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @default(now())
+
+  student            Student                    @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  university         University                 @relation(fields: [university_id], references: [id], onDelete: Restrict)
+  application_status ApplicationStatus?         @relation(fields: [application_status_id], references: [id])
+  assigned_agent     User?                      @relation("ApplicationAssignedAgent", fields: [assigned_agent_id], references: [id])
+  created_by_user    User?                      @relation("ApplicationCreatedBy", fields: [created_by], references: [id])
+  documents          ApplicationDocument[]
+  communications     ApplicationCommunication[]
+
+  @@index([student_id])
+  @@index([university_id])
+  @@index([application_status_id])
+  @@index([assigned_agent_id])
+  @@index([created_by])
+}
+
+model ApplicationDocument {
+  id             Int      @id @default(autoincrement())
+  application_id Int
+  document_type  String   @db.VarChar(100)
+  file_name      String   @db.VarChar(255)
+  file_path      String   @db.VarChar(500)
+  file_size      Int?
+  uploaded_by    Int?
+  uploaded_at    DateTime @default(now())
+
+  application      Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  uploaded_by_user User?       @relation("DocumentUploadedBy", fields: [uploaded_by], references: [id])
+
+  @@index([application_id])
+}
+
+model ApplicationCommunication {
+  id                 Int               @id @default(autoincrement())
+  application_id     Int
+  user_id            Int?
+  communication_type CommunicationType
+  subject            String?           @db.VarChar(255)
+  message            String
+  next_follow_up     DateTime?
+  created_at         DateTime          @default(now())
+
+  application Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [user_id], references: [id])
+
+  @@index([application_id])
+  @@index([user_id])
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum EnglishTestType {
+  ielts
+  toefl
+  pte
+  duolingo
+  none
+}
+
+enum CommunicationType {
+  email
+  call
+  meeting
+  note
 }

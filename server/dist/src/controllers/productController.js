@@ -16,7 +16,7 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     var _a;
     try {
         const search = (_a = req.query.search) === null || _a === void 0 ? void 0 : _a.toString();
-        const products = yield prisma.products.findMany({
+        const products = yield prisma.product.findMany({
             where: {
                 name: {
                     contains: search,
@@ -33,7 +33,7 @@ exports.getProducts = getProducts;
 const createProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { productId, name, price, rating, stockQuantity } = req.body;
-        const product = yield prisma.products.create({
+        const product = yield prisma.product.create({
             data: {
                 productId,
                 name,

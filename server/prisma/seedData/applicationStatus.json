@@ -1,0 +1,62 @@
+[
+  {
+    "status": "draft",
+    "description": "Application is being prepared and not yet submitted"
+  },
+  {
+    "status": "submitted",
+    "description": "Application has been submitted to the university"
+  },
+  {
+    "status": "under_review",
+    "description": "University is currently reviewing the application"
+  },
+  {
+    "status": "additional_docs_required",
+    "description": "University has requested additional documents"
+  },
+  {
+    "status": "interview_scheduled",
+    "description": "Interview has been scheduled with university representatives"
+  },
+  {
+    "status": "accepted",
+    "description": "Application has been accepted by the university"
+  },
+  {
+    "status": "rejected",
+    "description": "Application has been rejected by the university"
+  },
+  {
+    "status": "waitlisted",
+    "description": "Application has been placed on waiting list"
+  },
+  {
+    "status": "withdrawn",
+    "description": "Application has been withdrawn by the student"
+  },
+  {
+    "status": "conditional_offer",
+    "description": "Conditional offer letter received"
+  },
+  {
+    "status": "unconditional_offer",
+    "description": "Unconditional offer letter received"
+  },
+  {
+    "status": "visa_applied",
+    "description": "Student visa application submitted"
+  },
+  {
+    "status": "visa_approved",
+    "description": "Student visa approved"
+  },
+  {
+    "status": "visa_rejected",
+    "description": "Student visa rejected"
+  },
+  {
+    "status": "enrolled",
+    "description": "Student has enrolled and started studies"
+  }
+]

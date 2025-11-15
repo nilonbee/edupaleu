@@ -1,23 +1,54 @@
 import { PrismaClient } from "@prisma/client";
 import fs from "fs";
 import path from "path";
+
 const prisma = new PrismaClient();
 
-async function deleteAllData(orderedFileNames: string[]) {
-  const modelNames = orderedFileNames.map((fileName) => {
-    const modelName = path.basename(fileName, path.extname(fileName));
-    return modelName.charAt(0).toUpperCase() + modelName.slice(1);
-  });
+async function deleteAllData() {
+  console.log('🗑️  Clearing existing data in correct order...');
 
-  for (const modelName of modelNames) {
-    const model: any = prisma[modelName as keyof typeof prisma];
-    if (model) {
-      await model.deleteMany({});
-      console.log(`Cleared data from ${modelName}`);
-    } else {
-      console.error(
-        `Model ${modelName} not found. Please ensure the model name is correctly specified.`
-      );
+  // Delete in REVERSE order of dependencies (child tables first, parent tables last)
+  // Using EXACT Prisma model names from your schema
+  const deletionOrder = [
+    // Most dependent tables FIRST (those with foreign keys)
+    "ApplicationCommunication",
+    "ApplicationDocument",
+    "Application",
+    "AcademicQualification",
+    "Student",
+    "RefreshToken",
+
+    // Business tables - child tables first
+    "ExpenseByCategory",
+    "Sale",
+    "Purchase",
+    "Expense",
+
+    // Summary tables
+    "SalesSummary",
+    "PurchaseSummary",
+    "ExpenseSummary",
+
+    // Independent tables LAST (no foreign keys or referenced by others)
+    "User",           // ← This is "User" not "user"
+    "University",
+    "Country",
+    "ApplicationStatus",
+    "Role",
+    "Product"
+  ];
+
+  for (const modelName of deletionOrder) {
+    try {
+      const model: any = prisma[modelName as keyof typeof prisma];
+      if (model && typeof model.deleteMany === 'function') {
+        await model.deleteMany({});
+        console.log(`✅ Cleared ${modelName}`);
+      } else {
+        console.log(`⚠️  No model found for: ${modelName}`);
+      }
+    } catch (error: any) {
+      console.error(`❌ Failed to clear ${modelName}:`, error.message);
     }
   }
 }
@@ -25,44 +56,101 @@ async function deleteAllData(orderedFileNames: string[]) {
 async function main() {
   const dataDirectory = path.join(__dirname, "seedData");
 
+  // Seed in CORRECT order (parent tables first, child tables last)
   const orderedFileNames = [
-    "products.json",
-    "expenseSummary.json",
-    "sales.json",
-    "salesSummary.json",
-    "purchases.json",
-    "purchaseSummary.json",
-    "users.json",
-    "expenses.json",
-    "expenseByCategory.json",
+    // Study Abroad tables - parent tables first
+    "userRoles.json",        // Role (independent)
+    "applicationStatus.json", // ApplicationStatus (independent)
+    "countries.json",        // Country (independent)
+    "users.json",            // User (needs Role)
+    "universities.json",     // University (needs Country)
+
+    // Business tables - parent tables first
+    "products.json",         // Product (independent)
+    "expenses.json",         // Expense (independent)
+    "purchases.json",        // Purchase (needs Product)
+    "sales.json",            // Sale (needs Product)
+    "expenseSummary.json",   // ExpenseSummary (independent)
+    "purchaseSummary.json",  // PurchaseSummary (independent)  
+    "salesSummary.json",     // SalesSummary (independent)
+    "expenseByCategory.json" // ExpenseByCategory (needs ExpenseSummary)
   ];
 
-  await deleteAllData(orderedFileNames);
+  try {
+    await deleteAllData();
 
-  for (const fileName of orderedFileNames) {
-    const filePath = path.join(dataDirectory, fileName);
-    const jsonData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    const modelName = path.basename(fileName, path.extname(fileName));
-    const model: any = prisma[modelName as keyof typeof prisma];
+    console.log('🌱 Seeding new data...');
 
-    if (!model) {
-      console.error(`No Prisma model matches the file name: ${fileName}`);
-      continue;
+    for (const fileName of orderedFileNames) {
+      const filePath = path.join(dataDirectory, fileName);
+
+      if (!fs.existsSync(filePath)) {
+        console.error(`❌ File not found: ${fileName}`);
+        continue;
+      }
+
+      try {
+        const jsonData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+        const modelName = path.basename(fileName, path.extname(fileName));
+
+        // Map file names to EXACT Prisma model names (case-sensitive)
+        const modelMap: { [key: string]: string } = {
+          'userRoles': 'Role',
+          'applicationStatus': 'ApplicationStatus',
+          'countries': 'Country',
+          'users': 'User',           // ← This maps to "User" model
+          'universities': 'University',
+          'products': 'Product',
+          'expenses': 'Expense',
+          'purchases': 'Purchase',
+          'sales': 'Sale',
+          'expenseSummary': 'ExpenseSummary',
+          'purchaseSummary': 'PurchaseSummary',
+          'salesSummary': 'SalesSummary',
+          'expenseByCategory': 'ExpenseByCategory'
+        };
+
+        const prismaModelName = modelMap[modelName];
+        if (!prismaModelName) {
+          console.error(`❌ No mapping found for: ${fileName}`);
+          continue;
+        }
+
+        const model: any = prisma[prismaModelName as keyof typeof prisma];
+
+        if (!model) {
+          console.error(`❌ No Prisma model found for: ${prismaModelName}`);
+          continue;
+        }
+
+        if (jsonData.length > 0) {
+          // Use createMany for better performance
+          await model.createMany({
+            data: jsonData,
+            skipDuplicates: true,
+          });
+          console.log(`✅ Seeded ${prismaModelName} with ${jsonData.length} records`);
+        } else {
+          console.log(`⚠️  No data in ${fileName}`);
+        }
+
+      } catch (error: any) {
+        console.error(`❌ Error seeding ${fileName}:`, error.message);
+      }
     }
 
-    for (const data of jsonData) {
-      await model.create({
-        data,
-      });
-    }
+    console.log('🎉 Seeding completed successfully!');
 
-    console.log(`Seeded ${modelName} with data from ${fileName}`);
+  } catch (error) {
+    console.error('💥 Seeding failed:', error);
+    process.exit(1);
   }
 }
 
 main()
   .catch((e) => {
     console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

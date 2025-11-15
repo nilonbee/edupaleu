@@ -1,0 +1,42 @@
+[
+  {
+    "name": "superAdmin",
+    "description": "Super Administrator with full system access",
+    "permissions": { "all": true },
+    "is_active": true
+  },
+  {
+    "name": "admin",
+    "description": "Administrator with management privileges",
+    "permissions": {
+      "users": ["read", "write", "delete"],
+      "students": ["read", "write", "delete"],
+      "applications": ["read", "write", "delete"],
+      "universities": ["read", "write", "delete"],
+      "countries": ["read", "write"]
+    },
+    "is_active": true
+  },
+  {
+    "name": "agent",
+    "description": "Agent who manages student applications",
+    "permissions": {
+      "students": ["read", "write"],
+      "applications": ["read", "write"],
+      "universities": ["read"],
+      "countries": ["read"]
+    },
+    "is_active": true
+  },
+  {
+    "name": "employee",
+    "description": "Employee with limited access",
+    "permissions": {
+      "students": ["read"],
+      "applications": ["read"],
+      "universities": ["read"],
+      "countries": ["read"]
+    },
+    "is_active": true
+  }
+]

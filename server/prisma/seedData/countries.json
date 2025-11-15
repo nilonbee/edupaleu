@@ -1,0 +1,102 @@
+[
+  {
+    "name": "United States",
+    "code": "USA",
+    "is_active": true
+  },
+  {
+    "name": "United Kingdom",
+    "code": "GBR",
+    "is_active": true
+  },
+  {
+    "name": "Canada",
+    "code": "CAN",
+    "is_active": true
+  },
+  {
+    "name": "Australia",
+    "code": "AUS",
+    "is_active": true
+  },
+  {
+    "name": "Germany",
+    "code": "DEU",
+    "is_active": true
+  },
+  {
+    "name": "France",
+    "code": "FRA",
+    "is_active": true
+  },
+  {
+    "name": "Netherlands",
+    "code": "NLD",
+    "is_active": true
+  },
+  {
+    "name": "Ireland",
+    "code": "IRL",
+    "is_active": true
+  },
+  {
+    "name": "New Zealand",
+    "code": "NZL",
+    "is_active": true
+  },
+  {
+    "name": "Singapore",
+    "code": "SGP",
+    "is_active": true
+  },
+  {
+    "name": "Japan",
+    "code": "JPN",
+    "is_active": true
+  },
+  {
+    "name": "South Korea",
+    "code": "KOR",
+    "is_active": true
+  },
+  {
+    "name": "Malaysia",
+    "code": "MYS",
+    "is_active": true
+  },
+  {
+    "name": "Sweden",
+    "code": "SWE",
+    "is_active": true
+  },
+  {
+    "name": "Switzerland",
+    "code": "CHE",
+    "is_active": true
+  },
+  {
+    "name": "Norway",
+    "code": "NOR",
+    "is_active": true
+  },
+  {
+    "name": "Denmark",
+    "code": "DNK",
+    "is_active": true
+  },
+  {
+    "name": "Finland",
+    "code": "FIN",
+    "is_active": true
+  },
+  {
+    "name": "Italy",
+    "code": "ITA",
+    "is_active": true
+  },
+  {
+    "name": "Spain",
+    "code": "ESP",
+    "is_active": true
+  }
+]
