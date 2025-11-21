@@ -82,19 +82,12 @@ const Sidebar = () => {
         }`}
       >
         <Image
-          src="https://s3-inventorymanagement.s3.us-east-2.amazonaws.com/logo.png"
-          alt="edstock-logo"
-          width={27}
-          height={27}
-          className="rounded w-8"
+          src="https://ik.imagekit.io/nilonbee/edupaleu/Png.png"
+          alt="edupal-logo"
+          width={100}
+          height={100}
+          className="rounded w-36 md:w-64"
         />
-        <h1
-          className={`${
-            isSidebarCollapsed ? "hidden" : "block"
-          } font-extrabold text-2xl`}
-        >
-          EDSTOCK
-        </h1>
 
         <button
           className="md:hidden px-3 py-3 bg-gray-100 rounded-full hover:bg-blue-100"
@@ -113,33 +106,33 @@ const Sidebar = () => {
           isCollapsed={isSidebarCollapsed}
         />
         <SidebarLink
-          href="/inventory"
+          href="/enquiries"
           icon={Archive}
-          label="Inventory"
+          label="Enquiries"
           isCollapsed={isSidebarCollapsed}
         />
         <SidebarLink
-          href="/products"
+          href="/applications"
           icon={Clipboard}
-          label="Products"
+          label="Applications"
           isCollapsed={isSidebarCollapsed}
         />
         <SidebarLink
-          href="/users"
+          href="/students"
           icon={User}
-          label="Users"
+          label="Students"
+          isCollapsed={isSidebarCollapsed}
+        />
+        <SidebarLink
+          href="/universities"
+          icon={CircleDollarSign}
+          label="Expenses"
           isCollapsed={isSidebarCollapsed}
         />
         <SidebarLink
           href="/settings"
           icon={SlidersHorizontal}
           label="Settings"
-          isCollapsed={isSidebarCollapsed}
-        />
-        <SidebarLink
-          href="/expenses"
-          icon={CircleDollarSign}
-          label="Expenses"
           isCollapsed={isSidebarCollapsed}
         />
       </div>

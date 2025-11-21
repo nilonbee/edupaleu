@@ -2,13 +2,19 @@
 
 import { useAppDispatch, useAppSelector } from "@/app/redux";
 import { setIsDarkMode, setIsSidebarCollapsed } from "@/state";
-import { Bell, Menu, Moon, Settings, Sun } from "lucide-react";
+import { clearUser } from "@/state/authSlice";
+import { api, useLogoutMutation } from "@/state/api";
+import { useRouter } from "next/navigation";
+import { Bell, Menu, Moon, Settings, Sun, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
 const Navbar = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const [logout] = useLogoutMutation();
+  const user = useAppSelector((state) => state.auth.user);
   const isSidebarCollapsed = useAppSelector(
     (state) => state.global.isSidebarCollapsed
   );
@@ -22,6 +28,26 @@ const Navbar = () => {
     dispatch(setIsDarkMode(!isDarkMode));
   };
 
+  const handleLogout = async () => {
+    console.log("Logging out... Current user:", user);
+
+    try {
+      await logout().unwrap();
+      console.log("Backend logout successful");
+    } catch (error) {
+      console.log("Backend logout failed, but clearing frontend anyway");
+    }
+
+    // Clear Redux state
+    dispatch(clearUser());
+
+    // Clear API cache (if you imported api)
+    dispatch(api.util.resetApiState());
+
+    // Force complete reload
+    // window.location.href = "/login";
+  };
+  console.log(user, "USER_USER");
   return (
     <div className="flex justify-between items-center w-full mb-7">
       {/* LEFT SIDE */}
@@ -65,16 +91,23 @@ const Navbar = () => {
             </span>
           </div>
           <hr className="w-0 h-7 border border-solid border-l border-gray-300 mx-3" />
-          <div className="flex items-center gap-3 cursor-pointer">
+          <div className="flex items-center gap-3">
             <Image
-              src="https://s3-inventorymanagement.s3.us-east-2.amazonaws.com/profile.jpg"
+              src="https://ik.imagekit.io/nilonbee/edupaleu/Png.png"
               alt="Profile"
               width={50}
               height={50}
               className="rounded-full h-full object-cover"
             />
-            <span className="font-semibold">Ed Roh</span>
+            <span className="font-semibold">{user?.name || "User"}</span>
           </div>
+          <button
+            onClick={handleLogout}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="Logout"
+          >
+            <LogOut className="cursor-pointer text-gray-500" size={20} />
+          </button>
         </div>
         <Link href="/settings">
           <Settings className="cursor-pointer text-gray-500" size={24} />

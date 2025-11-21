@@ -88,27 +88,35 @@ model Role {
   name        String   @unique @db.VarChar(50)
   description String?
   permissions Json
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
   users User[]
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique @db.VarChar(255)
-  password_hash String    @db.VarChar(255)
-  first_name    String    @db.VarChar(100)
-  last_name     String    @db.VarChar(100)
-  role_id       Int
-  phone         String?   @db.VarChar(20)
-  is_active     Boolean   @default(true)
-  last_login    DateTime?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @default(now())
+  id           Int       @id @default(autoincrement())
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @db.VarChar(255)
+  firstName    String    @db.VarChar(100)
+  lastName     String    @db.VarChar(100)
+  roleId       Int
+  phone        String?   @db.VarChar(20)
+  isActive     Boolean   @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
 
-  role                 Role                       @relation(fields: [role_id], references: [id], onDelete: Restrict)
-  refreshTokens        RefreshToken[] // ← Changed from "refresh_tokens" to "refreshTokens"
+  // Authentication fields
+  verificationToken           String?   @db.VarChar(255)
+  isVerified                  Boolean   @default(false)
+  verified                    DateTime?
+  passwordToken               String?   @db.VarChar(255)
+  passwordTokenExpirationDate DateTime?
+
+  role                 Role                       @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  refreshTokens        RefreshToken[]
+  authTokens           AuthToken[]
   studentsCreated      Student[]                  @relation("StudentCreatedBy")
   applicationsAssigned Application[]              @relation("ApplicationAssignedAgent")
   applicationsCreated  Application[]              @relation("ApplicationCreatedBy")
@@ -131,165 +139,182 @@ model RefreshToken {
   @@index([expiresAt])
 }
 
+model AuthToken {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  refreshToken String   @db.VarChar(255)
+  ip           String   @db.VarChar(100)
+  userAgent    String   @db.VarChar(500)
+  isValid      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
 model Country {
-  id         Int      @id @default(autoincrement())
-  name       String   @unique @db.VarChar(100)
-  code       String   @unique @db.VarChar(3)
-  is_active  Boolean  @default(true)
-  created_at DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  code      String   @unique @db.VarChar(3)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 
   universities University[]
 }
 
 model University {
-  id                   Int      @id @default(autoincrement())
-  name                 String   @db.VarChar(255)
-  country_id           Int
-  website              String?  @db.VarChar(255)
-  email                String?  @db.VarChar(255)
-  phone                String?  @db.VarChar(20)
-  ranking              Int?
-  tuition_fee_range    String?  @db.VarChar(100)
-  intake_months        Json?
-  application_deadline Int?
-  is_active            Boolean  @default(true)
-  created_at           DateTime @default(now())
-  updated_at           DateTime @default(now())
+  id                  Int      @id @default(autoincrement())
+  name                String   @db.VarChar(255)
+  countryId           Int
+  website             String?  @db.VarChar(255)
+  email               String?  @db.VarChar(255)
+  phone               String?  @db.VarChar(20)
+  ranking             Int?
+  tuitionFeeRange     String?  @db.VarChar(100)
+  intakeMonths        Json?
+  applicationDeadline Int?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now())
 
-  country      Country       @relation(fields: [country_id], references: [id], onDelete: Restrict)
+  country      Country       @relation(fields: [countryId], references: [id], onDelete: Restrict)
   applications Application[]
 
-  @@index([country_id])
+  @@index([countryId])
 }
 
 model Student {
-  id                      Int              @id @default(autoincrement())
-  student_id              String           @unique @db.VarChar(50)
-  first_name              String           @db.VarChar(100)
-  last_name               String           @db.VarChar(100)
-  date_of_birth           DateTime
-  gender                  Gender
-  email                   String           @unique @db.VarChar(255)
-  phone                   String?          @db.VarChar(20)
-  nationality             String?          @db.VarChar(100)
-  passport_number         String?          @unique @db.VarChar(50)
-  passport_expiry         DateTime?
-  address                 String?
-  city                    String?          @db.VarChar(100)
-  state                   String?          @db.VarChar(100)
-  zip_code                String?          @db.VarChar(20)
-  emergency_contact_name  String?          @db.VarChar(200)
-  emergency_contact_phone String?          @db.VarChar(20)
-  has_english_test        Boolean          @default(false)
-  english_test_type       EnglishTestType? @default(none)
-  english_test_score      String?          @db.VarChar(50)
-  english_test_date       DateTime?
-  created_by              Int
-  created_at              DateTime         @default(now())
-  updated_at              DateTime         @default(now())
+  id                    Int              @id @default(autoincrement())
+  studentId             String           @unique @db.VarChar(50)
+  firstName             String           @db.VarChar(100)
+  lastName              String           @db.VarChar(100)
+  dateOfBirth           DateTime
+  gender                Gender
+  email                 String           @unique @db.VarChar(255)
+  phone                 String?          @db.VarChar(20)
+  nationality           String?          @db.VarChar(100)
+  passportNumber        String?          @unique @db.VarChar(50)
+  displayPicture        String?
+  passportExpiry        DateTime?
+  address               String?
+  city                  String?          @db.VarChar(100)
+  state                 String?          @db.VarChar(100)
+  zipCode               String?          @db.VarChar(20)
+  emergencyContactName  String?          @db.VarChar(200)
+  emergencyContactPhone String?          @db.VarChar(20)
+  hasEnglishTest        Boolean          @default(false)
+  englishTestType       EnglishTestType? @default(none)
+  englishTestScore      String?          @db.VarChar(50)
+  englishTestDate       DateTime?
+  createdBy             Int
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @default(now())
 
-  created_by_user         User?                   @relation("StudentCreatedBy", fields: [created_by], references: [id])
-  academic_qualifications AcademicQualification[]
-  applications            Application[]
+  createdByUser          User?                   @relation("StudentCreatedBy", fields: [createdBy], references: [id])
+  academicQualifications AcademicQualification[]
+  applications           Application[]
 
-  @@index([created_by])
+  @@index([createdBy])
   @@index([email])
 }
 
 model AcademicQualification {
-  id               Int       @id @default(autoincrement())
-  student_id       Int
-  name             String    @db.VarChar(255)
-  education_level  String    @db.VarChar(100)
-  institution_name String    @db.VarChar(255)
-  program_name     String?   @db.VarChar(255)
-  start_date       DateTime?
-  end_date         DateTime?
-  grade            String?   @db.VarChar(50)
-  gpa              Float?
-  is_completed     Boolean   @default(true)
-  document_path    String?   @db.VarChar(500)
-  created_at       DateTime  @default(now())
+  id              Int       @id @default(autoincrement())
+  studentId       Int
+  name            String    @db.VarChar(255)
+  educationLevel  String    @db.VarChar(100)
+  institutionName String    @db.VarChar(255)
+  programName     String?   @db.VarChar(255)
+  startDate       DateTime?
+  endDate         DateTime?
+  grade           String?   @db.VarChar(50)
+  gpa             Float?
+  isCompleted     Boolean   @default(true)
+  documentPath    String?   @db.VarChar(500)
+  createdAt       DateTime  @default(now())
 
-  student Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@index([student_id])
+  @@index([studentId])
 }
 
 model ApplicationStatus {
   id          Int      @id @default(autoincrement())
   status      String   @unique @db.VarChar(50)
   description String?
-  created_at  DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   applications Application[]
 }
 
 model Application {
-  id                    Int       @id @default(autoincrement())
-  application_ref       String    @unique @db.VarChar(100)
-  student_id            Int
-  university_id         Int
-  intended_program      String    @db.VarChar(255)
-  intake_year           Int
-  intake_month          String    @db.VarChar(20)
-  application_status_id Int?
-  assigned_agent_id     Int?
-  application_fee       Float     @default(0)
-  fee_paid              Boolean   @default(false)
-  submission_date       DateTime?
-  decision_date         DateTime?
-  notes                 String?
-  created_by            Int?
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @default(now())
+  id                  Int       @id @default(autoincrement())
+  applicationRef      String    @unique @db.VarChar(100)
+  studentId           Int
+  universityId        Int
+  intendedProgram     String    @db.VarChar(255)
+  intakeYear          Int
+  intakeMonth         String    @db.VarChar(20)
+  applicationStatusId Int?
+  assignedAgentId     Int?
+  applicationFee      Float     @default(0)
+  feePaid             Boolean   @default(false)
+  submissionDate      DateTime?
+  decisionDate        DateTime?
+  notes               String?
+  createdBy           Int?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
 
-  student            Student                    @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  university         University                 @relation(fields: [university_id], references: [id], onDelete: Restrict)
-  application_status ApplicationStatus?         @relation(fields: [application_status_id], references: [id])
-  assigned_agent     User?                      @relation("ApplicationAssignedAgent", fields: [assigned_agent_id], references: [id])
-  created_by_user    User?                      @relation("ApplicationCreatedBy", fields: [created_by], references: [id])
-  documents          ApplicationDocument[]
-  communications     ApplicationCommunication[]
+  student           Student                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  university        University                 @relation(fields: [universityId], references: [id], onDelete: Restrict)
+  applicationStatus ApplicationStatus?         @relation(fields: [applicationStatusId], references: [id])
+  assignedAgent     User?                      @relation("ApplicationAssignedAgent", fields: [assignedAgentId], references: [id])
+  createdByUser     User?                      @relation("ApplicationCreatedBy", fields: [createdBy], references: [id])
+  documents         ApplicationDocument[]
+  communications    ApplicationCommunication[]
 
-  @@index([student_id])
-  @@index([university_id])
-  @@index([application_status_id])
-  @@index([assigned_agent_id])
-  @@index([created_by])
+  @@index([studentId])
+  @@index([universityId])
+  @@index([applicationStatusId])
+  @@index([assignedAgentId])
+  @@index([createdBy])
 }
 
 model ApplicationDocument {
-  id             Int      @id @default(autoincrement())
-  application_id Int
-  document_type  String   @db.VarChar(100)
-  file_name      String   @db.VarChar(255)
-  file_path      String   @db.VarChar(500)
-  file_size      Int?
-  uploaded_by    Int?
-  uploaded_at    DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  applicationId Int
+  documentType  String   @db.VarChar(100)
+  fileName      String   @db.VarChar(255)
+  filePath      String   @db.VarChar(500)
+  fileSize      Int?
+  uploadedBy    Int?
+  uploadedAt    DateTime @default(now())
 
-  application      Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
-  uploaded_by_user User?       @relation("DocumentUploadedBy", fields: [uploaded_by], references: [id])
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  uploadedByUser User?       @relation("DocumentUploadedBy", fields: [uploadedBy], references: [id])
 
-  @@index([application_id])
+  @@index([applicationId])
 }
 
 model ApplicationCommunication {
-  id                 Int               @id @default(autoincrement())
-  application_id     Int
-  user_id            Int?
-  communication_type CommunicationType
-  subject            String?           @db.VarChar(255)
-  message            String
-  next_follow_up     DateTime?
-  created_at         DateTime          @default(now())
+  id                Int               @id @default(autoincrement())
+  applicationId     Int
+  userId            Int?
+  communicationType CommunicationType
+  subject           String?           @db.VarChar(255)
+  message           String
+  nextFollowUp      DateTime?
+  createdAt         DateTime          @default(now())
 
-  application Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
-  user        User?       @relation(fields: [user_id], references: [id])
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id])
 
-  @@index([application_id])
-  @@index([user_id])
+  @@index([applicationId])
+  @@index([userId])
 }
 
 enum Gender {

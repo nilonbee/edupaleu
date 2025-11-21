@@ -26,7 +26,7 @@ const CardPurchaseSummary = () => {
           {/* HEADER */}
           <div>
             <h2 className="text-lg font-semibold mb-2 px-7 pt-5">
-              Purchase Summary
+              Conversion Summary
             </h2>
             <hr />
           </div>
@@ -34,7 +34,7 @@ const CardPurchaseSummary = () => {
           {/* BODY */}
           <div>
             {/* BODY HEADER */}
-            <div className="mb-4 mt-7 px-7">
+            <div className="mt-7 px-7">
               <p className="text-xs text-gray-400">Purchased</p>
               <div className="flex items-center">
                 <p className="text-2xl font-bold">
@@ -61,7 +61,7 @@ const CardPurchaseSummary = () => {
               </div>
             </div>
             {/* CHART */}
-            <ResponsiveContainer width="100%" height={200} className="p-2">
+            <ResponsiveContainer width="100%" height={180} className="p-2">
               <AreaChart
                 data={purchaseData}
                 margin={{ top: 0, right: 0, left: -50, bottom: 45 }}

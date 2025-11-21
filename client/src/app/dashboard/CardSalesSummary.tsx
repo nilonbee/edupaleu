@@ -50,7 +50,7 @@ const CardSalesSummary = () => {
           {/* HEADER */}
           <div>
             <h2 className="text-lg font-semibold mb-2 px-7 pt-5">
-              Sales Summary
+              Enquiries Summary
             </h2>
             <hr />
           </div>
@@ -86,7 +86,7 @@ const CardSalesSummary = () => {
               </select>
             </div>
             {/* CHART */}
-            <ResponsiveContainer width="100%" height={350} className="px-7">
+            <ResponsiveContainer width="100%" height={320} className="px-7">
               <BarChart
                 data={salesData}
                 margin={{ top: 0, right: 0, left: -25, bottom: 0 }}

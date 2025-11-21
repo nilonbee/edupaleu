@@ -1,11 +1,13 @@
 [
   {
+    "id": 1,
     "name": "superAdmin",
     "description": "Super Administrator with full system access",
     "permissions": { "all": true },
-    "is_active": true
+    "isActive": true
   },
   {
+    "id": 2,
     "name": "admin",
     "description": "Administrator with management privileges",
     "permissions": {
@@ -15,9 +17,10 @@
       "universities": ["read", "write", "delete"],
       "countries": ["read", "write"]
     },
-    "is_active": true
+    "isActive": true
   },
   {
+    "id": 3,
     "name": "agent",
     "description": "Agent who manages student applications",
     "permissions": {
@@ -26,9 +29,10 @@
       "universities": ["read"],
       "countries": ["read"]
     },
-    "is_active": true
+    "isActive": true
   },
   {
+    "id": 4,
     "name": "employee",
     "description": "Employee with limited access",
     "permissions": {
@@ -37,6 +41,6 @@
       "universities": ["read"],
       "countries": ["read"]
     },
-    "is_active": true
+    "isActive": true
   }
 ]

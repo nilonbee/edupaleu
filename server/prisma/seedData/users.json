@@ -1,92 +1,26 @@
 [
   {
-    "email": "super.admin@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashSuperAdmin123456789",
-    "first_name": "Michael",
-    "last_name": "Chen",
-    "role_id": 1,
-    "phone": "+1-555-0101",
-    "is_active": true
+    "id": 1,
+    "email": "admin@edupal.com",
+    "passwordHash": "$2b$10$examplehashedpassword",
+    "firstName": "System",
+    "lastName": "Admin",
+    "roleId": 1, 
+    "phone": "+1234567890",
+    "isActive": true,
+    "isVerified": true,
+    "verified": "2024-01-01T00:00:00.000Z"
   },
   {
-    "email": "admin.manager@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashAdminManager123456789",
-    "first_name": "Sarah",
-    "last_name": "Johnson",
-    "role_id": 2,
-    "phone": "+1-555-0102",
-    "is_active": true
-  },
-  {
-    "email": "agent.david@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashAgentDavid123456789",
-    "first_name": "David",
-    "last_name": "Wilson",
-    "role_id": 3,
-    "phone": "+1-555-0103",
-    "is_active": true
-  },
-  {
-    "email": "agent.emma@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashAgentEmma123456789",
-    "first_name": "Emma",
-    "last_name": "Rodriguez",
-    "role_id": 3,
-    "phone": "+1-555-0104",
-    "is_active": true
-  },
-  {
-    "email": "agent.liam@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashAgentLiam123456789",
-    "first_name": "Liam",
-    "last_name": "Patel",
-    "role_id": 3,
-    "phone": "+1-555-0105",
-    "is_active": true
-  },
-  {
-    "email": "employee.sophia@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashEmployeeSophia123456",
-    "first_name": "Sophia",
-    "last_name": "Brown",
-    "role_id": 4,
-    "phone": "+1-555-0106",
-    "is_active": true
-  },
-  {
-    "email": "employee.james@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashEmployeeJames1234567",
-    "first_name": "James",
-    "last_name": "Taylor",
-    "role_id": 4,
-    "phone": "+1-555-0107",
-    "is_active": true
-  },
-  {
-    "email": "agent.maria@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashAgentMaria123456789",
-    "first_name": "Maria",
-    "last_name": "Garcia",
-    "role_id": 3,
-    "phone": "+1-555-0108",
-    "is_active": true
-  },
-  {
-    "email": "admin.tech@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashAdminTech12345678901",
-    "first_name": "Alex",
-    "last_name": "Thompson",
-    "role_id": 2,
-    "phone": "+1-555-0109",
-    "is_active": true
-  },
-  {
-    "email": "employee.olivia@studysystem.com",
-    "password_hash": "$2b$10$ExampleHashEmployeeOlivia12345",
-    "first_name": "Olivia",
-    "last_name": "Martinez",
-    "role_id": 4,
-    "phone": "+1-555-0110",
-    "is_active": false
+    "id": 2,
+    "email": "agent.john@edupal.com",
+    "passwordHash": "$2b$10$examplehashedpassword",
+    "firstName": "John",
+    "lastName": "Smith",
+    "roleId": 3,
+    "phone": "+1234567891",
+    "isActive": true,
+    "isVerified": true,
+    "verified": "2024-01-01T00:00:00.000Z"
   }
 ]

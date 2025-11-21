@@ -46,10 +46,13 @@ const storage =
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["global"],
+  whitelist: ["global", "auth"],
 };
+import authReducer from "@/state/authSlice";
+
 const rootReducer = combineReducers({
   global: globalReducer,
+  auth: authReducer,
   [api.reducerPath]: api.reducer,
 });
 const persistedReducer = persistReducer(persistConfig, rootReducer);

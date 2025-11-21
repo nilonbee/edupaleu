@@ -51,16 +51,168 @@ export interface DashboardMetrics {
 }
 
 export interface User {
-  userId: string;
+  userId: number;
   name: string;
+  role: string;
+}
+
+export interface AuthUser {
+  user: User;
+}
+
+export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface VerifyEmailRequest {
+  verificationToken: string;
   email: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  msg: string;
+  user?: User;
+}
+
+// In your api.ts file
+
+
+export interface Student {
+  id: number;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  displayPicture?: string;
+  nationality?: string;
+  createdAt: string;
+}
+
+export interface University {
+  id: number;
+  name: string;
+  website?: string;
+  email?: string;
+  phone?: string;
+  ranking?: number;
+  tuition_fee_range?: string;
+  country?: {
+    name: string;
+    code: string;
+  };
+}
+
+export interface ApplicationStatus {
+  id: number;
+  status: string;
+  description?: string;
+}
+
+// In your api.ts file - use existing interfaces
+export interface Application {
+  id: number;
+  applicationRef: string;
+  studentId: number;
+  universityId: number;
+  intendedProgram: string;
+  intakeYear: number;
+  intakeMonth: string;
+  applicationStatusId?: number;
+  assignedAgentId?: number;
+  applicationFee: number;
+  feePaid: boolean;
+  submissionDate?: string;
+  decisionDate?: string;
+  notes?: string;
+  createdBy?: number;
+  createdAt: string;
+  updatedAt: string;
+  // NEW: Use existing interfaces for joined relations
+  student: Student;
+  university: University;
+  applicationStatus?: ApplicationStatus;
+  assignedAgent?: User; // Using your existing User interface
+}
+
+const baseQuery = fetchBaseQuery({
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+  credentials: "include", // This ensures cookies are sent with requests
+});
+
 export const api = createApi({
-  baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL }),
+  baseQuery,
   reducerPath: "api",
-  tagTypes: ["DashboardMetrics", "Products", "Users", "Expenses"],
+  tagTypes: ["DashboardMetrics", "Products", "Users", "Expenses", "Auth", "Applications", "Students",
+    "Universities",
+    "ApplicationStatuses"],
   endpoints: (build) => ({
+    // Auth endpoints
+    register: build.mutation<AuthResponse, RegisterRequest>({
+      query: (credentials) => ({
+        url: "/api/v1/auth/register",
+        method: "POST",
+        body: credentials,
+      }),
+    }),
+    login: build.mutation<AuthUser, LoginRequest>({
+      query: (credentials) => ({
+        url: "/api/v1/auth/login",
+        method: "POST",
+        body: credentials,
+      }),
+      invalidatesTags: ["Auth"],
+    }),
+    logout: build.mutation<{ msg: string }, void>({
+      query: () => ({
+        url: "/api/v1/auth/logout",
+        method: "DELETE",
+      }),
+    }),
+    verifyEmail: build.mutation<AuthResponse, VerifyEmailRequest>({
+      query: (data) => ({
+        url: "/api/v1/auth/verify-email",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    forgotPassword: build.mutation<AuthResponse, ForgotPasswordRequest>({
+      query: (data) => ({
+        url: "/api/v1/auth/forgot-password",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    resetPassword: build.mutation<AuthResponse, ResetPasswordRequest>({
+      query: (data) => ({
+        url: "/api/v1/auth/reset-password",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    getCurrentUser: build.query<AuthUser, void>({
+      query: () => "/api/v1/users/showMe",
+      providesTags: ["Auth"],
+    }),
+    // Dashboard endpoints
     getDashboardMetrics: build.query<DashboardMetrics, void>({
       query: () => "/dashboard",
       providesTags: ["DashboardMetrics"],
@@ -88,6 +240,24 @@ export const api = createApi({
       query: () => "/expenses",
       providesTags: ["Expenses"],
     }),
+    getApplications: build.query<Application[], void>({
+      query: () => "/applications",
+      providesTags: ["Applications"], // Fixed the typo from "privideTags" to "providesTags"
+    }),
+    getStudents: build.query<Student[], void>({
+      query: () => "/students",
+      providesTags: ["Students"],
+    }),
+
+    getUniversities: build.query<University[], void>({
+      query: () => "/universities",
+      providesTags: ["Universities"],
+    }),
+
+    getApplicationStatuses: build.query<ApplicationStatus[], void>({
+      query: () => "/application-status",
+      providesTags: ["ApplicationStatuses"],
+    }),
   }),
 });
 
@@ -97,4 +267,15 @@ export const {
   useCreateProductMutation,
   useGetUsersQuery,
   useGetExpensesByCategoryQuery,
+  useRegisterMutation,
+  useLoginMutation,
+  useLogoutMutation,
+  useVerifyEmailMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useGetCurrentUserQuery,
+  useGetApplicationsQuery,
+  useGetStudentsQuery,
+  useGetUniversitiesQuery,
+  useGetApplicationStatusesQuery,
 } = api;
