@@ -13,6 +13,7 @@ import applicationRoutes from './routes/applicationRoutes';
 import universityRoutes from './routes/universityRoutes';
 import applicationStatusRoutes from './routes/applicationStatusRoutes';
 import studentRoutes from './routes/studentRoutes';
+import seedRoutes from './routes/seedRoutes';
 
 import { errorHandlerMiddleware } from './middleware/error-handler';
 import { notFoundMiddleware } from './middleware/not-found';
@@ -49,6 +50,7 @@ app.use('/applications', applicationRoutes)
 app.use('/application-status', applicationStatusRoutes)
 app.use('/universities', universityRoutes)
 app.use('/students', studentRoutes)
+app.use('/seed', seedRoutes)
 
 
 
