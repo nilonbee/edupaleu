@@ -12,7 +12,6 @@ export const sendEmail = async ({
   html: string;
 }) => {
   if (process.env.NODE_ENV === 'production') {
-    // Use SendGrid in production
     sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
     const msg = {
@@ -32,8 +31,6 @@ export const sendEmail = async ({
       subject,
       html,
     });
-
-    console.log('Ethereal Preview URL: ', nodemailer.getTestMessageUrl(result));
     return result;
   }
 };
