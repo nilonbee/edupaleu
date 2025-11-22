@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: edupal-server
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: cd server && npm install && npm run build && npm run migrate
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8000
