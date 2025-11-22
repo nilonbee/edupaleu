@@ -16,7 +16,7 @@ export const sendEmail = async ({
 
     const msg = {
       to,
-      from: process.env.EMAIL_FROM || 'nilonbee@gmail.com',
+      from: 'nilonbee@gmail.com',
       subject,
       html,
     };
@@ -26,7 +26,7 @@ export const sendEmail = async ({
     // Use Ethereal in development
     const transporter = nodemailer.createTransport(nodemailerConfig);
     const result = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || '"Edupal" <noreply@edupal.com>',
+      from: '"Edupal" <noreply@edupal.com>',
       to,
       subject,
       html,
