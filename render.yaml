@@ -5,6 +5,7 @@ services:
     plan: free
     region: oregon
     rootDir: server
+    nodeVersion: 20.11.0
     buildCommand: npm install && npm run build && npm run migrate
     startCommand: npm start
     envVars:
