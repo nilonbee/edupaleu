@@ -19,13 +19,14 @@
 ### 2. Create Web Service on Render
 1. Click "New +" → "Web Service"
 2. Connect your GitHub repository
-3. Set the following configuration:
+3. The `render.yaml` file in the root directory will automatically configure your service
 
-**Basic Settings:**
+**If you need to manually configure instead:**
 - Name: `edupal-server`
 - Environment: `Node`
 - Region: Same as database
 - Branch: `main`
+- Root Directory: `server` (IMPORTANT: This tells Render where your server code is)
 - Build Command: `npm install && npm run build && npm run migrate`
 - Start Command: `npm start`
 

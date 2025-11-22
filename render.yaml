@@ -4,8 +4,9 @@ services:
     env: node
     plan: free
     region: oregon
-    buildCommand: cd server && npm install && npm run build && npm run migrate
-    startCommand: cd server && npm start
+    rootDir: server
+    buildCommand: npm install && npm run build && npm run migrate
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
