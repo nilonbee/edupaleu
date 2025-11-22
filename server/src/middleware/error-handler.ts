@@ -7,6 +7,7 @@ export const errorHandlerMiddleware = (
   err: Error,
   req: Request,
   res: Response,
+
   next: NextFunction
 ): void => {
   let customError = {
