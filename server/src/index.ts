@@ -13,7 +13,8 @@ import applicationRoutes from './routes/applicationRoutes';
 import universityRoutes from './routes/universityRoutes';
 import applicationStatusRoutes from './routes/applicationStatusRoutes';
 import studentRoutes from './routes/studentRoutes';
-import seedRoutes from './routes/seeds'
+import seedRoutes from './routes/seeds';
+import sendgridRoutes from './routes/sendgridRoutes';
 
 import { errorHandlerMiddleware } from './middleware/error-handler';
 import { notFoundMiddleware } from './middleware/not-found';
@@ -51,8 +52,10 @@ app.use('/application-status', applicationStatusRoutes)
 app.use('/universities', universityRoutes)
 app.use('/students', studentRoutes)
 app.use('/seed', seedRoutes);
-
-
+app.use('/sendgrid', sendgridRoutes);
+app.get('/twillio', (req, res) => {
+    res.send('hi');
+});
 
 // Error handling
 app.use(notFoundMiddleware);

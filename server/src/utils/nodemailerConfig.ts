@@ -12,3 +12,4 @@ const nodemailerConfig = {
 
 export default nodemailerConfig;
 
+
