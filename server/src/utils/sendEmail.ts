@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import nodemailerConfig from './nodemailerConfig';
+import sgMail from '@sendgrid/mail';
 
 export const sendEmail = async ({
   to,
@@ -10,13 +11,26 @@ export const sendEmail = async ({
   subject: string;
   html: string;
 }) => {
-  const transporter = nodemailer.createTransport(nodemailerConfig);
+  if (process.env.NODE_ENV === 'production') {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM || '"Edupal" <noreply@edupal.com>',
-    to,
-    subject,
-    html,
-  });
+    const msg = {
+      to,
+      from: 'nilonbee@gmail.com',
+      subject,
+      html,
+    };
+
+    return await sgMail.send(msg);
+  } else {
+    // Use Ethereal in development
+    const transporter = nodemailer.createTransport(nodemailerConfig);
+    const result = await transporter.sendMail({
+      from: '"Edupal" <noreply@edupal.com>',
+      to,
+      subject,
+      html,
+    });
+    return result;
+  }
 };
-
