@@ -186,7 +186,9 @@ export const api = createApi({
       query: () => ({
         url: "/api/v1/auth/logout",
         method: "DELETE",
+        credentials: "include",
       }),
+      invalidatesTags: ["Auth"],
     }),
     verifyEmail: build.mutation<AuthResponse, VerifyEmailRequest>({
       query: (data) => ({

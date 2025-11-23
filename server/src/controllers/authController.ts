@@ -7,6 +7,7 @@ import {
     BadRequestError,
     UnauthenticatedError,
 } from '../errors';
+import { cookieOptions } from '../utils/cookieOptions';
 import { attachCookiesToResponse } from '../utils/jwt';
 import { createTokenUser } from '../utils/createTokenUser';
 import { sendVerificationEmail } from '../utils/sendVerificationEmail';
@@ -222,11 +223,11 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 
         // Clear cookies regardless
         res.cookie('accessToken', 'logout', {
-            httpOnly: true,
+            ...cookieOptions,
             expires: new Date(Date.now()),
         });
         res.cookie('refreshToken', 'logout', {
-            httpOnly: true,
+            ...cookieOptions,
             expires: new Date(Date.now()),
         });
 
@@ -234,11 +235,11 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
     } catch (error) {
         // Still clear cookies even if there's an error
         res.cookie('accessToken', 'logout', {
-            httpOnly: true,
+            ...cookieOptions,
             expires: new Date(Date.now()),
         });
         res.cookie('refreshToken', 'logout', {
-            httpOnly: true,
+            ...cookieOptions,
             expires: new Date(Date.now()),
         });
 
