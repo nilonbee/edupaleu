@@ -178,6 +178,7 @@ export const api = createApi({
         url: "/api/v1/auth/login",
         method: "POST",
         body: credentials,
+        credentials: 'include',
       }),
       invalidatesTags: ["Auth"],
     }),

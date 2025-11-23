@@ -34,10 +34,7 @@ app.use(morgan('common'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL,
-        "http://localhost:3000"
-    ].filter(Boolean),
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
 }));
 
