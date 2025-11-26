@@ -39,7 +39,7 @@ export const UniversitySelection: React.FC = () => {
             label: `${u.name} ${u.ranking ? `(Rank: ${u.ranking})` : ""}`,
           })) || []
         }
-        onChange={handleUniversitySelect} // Just pass the function that takes a string
+        onChange={handleUniversitySelect}
       />
 
       {selectedUniversity && (
