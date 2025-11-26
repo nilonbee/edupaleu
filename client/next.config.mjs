@@ -21,6 +21,13 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+    async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "https://edupaleu.onrender.com/:path*",
+      },
+    ];
   },
 };
 
