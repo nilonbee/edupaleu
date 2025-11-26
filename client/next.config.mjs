@@ -25,7 +25,6 @@ const nextConfig = {
 
   async rewrites() {
     return [
-      // Proxy all /api/v1 requests to your Render backend
       {
         source: "/api/v1/:path*",
         destination: "https://edupaleu.onrender.com/api/v1/:path*",
@@ -34,4 +33,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
