@@ -46,15 +46,20 @@ const storage =
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["global", "auth"],
+  whitelist: ["global", "auth", "application"], // Add application to whitelist
 };
 import authReducer from "@/state/authSlice";
+import applicationReducer from "@/state/applicationSlice"; // Import application slice
+import { applicationApi } from "@/state/applicationApi"; // Import application API
 
 const rootReducer = combineReducers({
   global: globalReducer,
   auth: authReducer,
+  application: applicationReducer, // Add application reducer
   [api.reducerPath]: api.reducer,
+  [applicationApi.reducerPath]: applicationApi.reducer, // Add application API
 });
+
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 /* REDUX STORE */
@@ -66,7 +71,9 @@ export const makeStore = () => {
         serializableCheck: {
           ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
         },
-      }).concat(api.middleware),
+      })
+        .concat(api.middleware)
+        .concat(applicationApi.middleware), // Add application API middleware
   });
 };
 
