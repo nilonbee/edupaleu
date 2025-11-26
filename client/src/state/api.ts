@@ -168,14 +168,14 @@ export const api = createApi({
     // Auth endpoints
     register: build.mutation<AuthResponse, RegisterRequest>({
       query: (credentials) => ({
-        url: "/api/v1/auth/register",
+        url: "/auth/register",
         method: "POST",
         body: credentials,
       }),
     }),
     login: build.mutation<AuthUser, LoginRequest>({
       query: (credentials) => ({
-        url: "/api/v1/auth/login",
+        url: "/auth/login",
         method: "POST",
         body: credentials,
         credentials: 'include',
@@ -184,7 +184,7 @@ export const api = createApi({
     }),
     logout: build.mutation<{ msg: string }, void>({
       query: () => ({
-        url: "/api/v1/auth/logout",
+        url: "/auth/logout",
         method: "DELETE",
         credentials: "include",
       }),
@@ -192,27 +192,27 @@ export const api = createApi({
     }),
     verifyEmail: build.mutation<AuthResponse, VerifyEmailRequest>({
       query: (data) => ({
-        url: "/api/v1/auth/verify-email",
+        url: "/auth/verify-email",
         method: "POST",
         body: data,
       }),
     }),
     forgotPassword: build.mutation<AuthResponse, ForgotPasswordRequest>({
       query: (data) => ({
-        url: "/api/v1/auth/forgot-password",
+        url: "/auth/forgot-password",
         method: "POST",
         body: data,
       }),
     }),
     resetPassword: build.mutation<AuthResponse, ResetPasswordRequest>({
       query: (data) => ({
-        url: "/api/v1/auth/reset-password",
+        url: "/auth/reset-password",
         method: "POST",
         body: data,
       }),
     }),
     getCurrentUser: build.query<AuthUser, void>({
-      query: () => "/api/v1/users/showMe",
+      query: () => "/users/showMe",
       providesTags: ["Auth"],
     }),
     // Dashboard endpoints
