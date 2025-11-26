@@ -1,5 +1,4 @@
-// state/applicationApi.ts
-import { Student, University } from '@/types/applications';
+import { Student, University } from '../types/applications';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 
