@@ -44,13 +44,13 @@ app.use(cookieParser(process.env.JWT_SECRET));
 //ROUTES
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-app.use('/api/v1//dashboard', dashboardRoutes);
-app.use('/api/v1//products', productRoutes);
-app.use('/api/v1//applications', applicationRoutes)
-app.use('/api/v1//application-status', applicationStatusRoutes)
-app.use('/api/v1//universities', universityRoutes)
-app.use('/api/v1//students', studentRoutes)
-app.use('/api/v1//seed', seedRoutes)
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/applications', applicationRoutes)
+app.use('/api/v1/application-status', applicationStatusRoutes)
+app.use('/api/v1/universities', universityRoutes)
+app.use('/api/v1/students', studentRoutes)
+app.use('/api/v1/seed', seedRoutes)
 
 
 
