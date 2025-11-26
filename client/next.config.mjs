@@ -21,14 +21,17 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
-    async rewrites() {
+  },
+
+  async rewrites() {
     return [
+      // Proxy all /api/v1 requests to your Render backend
       {
-        source: "/api/:path*",
-        destination: "https://edupaleu.onrender.com/:path*",
+        source: "/api/v1/:path*",
+        destination: "https://edupaleu.onrender.com/api/v1/:path*",
       },
     ];
   },
-}
+};
 
-export default nextConfig;
+module.exports = nextConfig;
