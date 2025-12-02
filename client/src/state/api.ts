@@ -154,7 +154,7 @@ export interface Application {
 }
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}`,
+  baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/`,
   credentials: "include", // This ensures cookies are sent with requests
 });
 
