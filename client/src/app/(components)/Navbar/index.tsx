@@ -37,15 +37,7 @@ const Navbar = () => {
     } catch (error) {
       console.log("Backend logout failed, but clearing frontend anyway");
     }
-
-    // Clear Redux state
-    dispatch(clearUser());
-
-    // Clear API cache (if you imported api)
     dispatch(api.util.resetApiState());
-
-    // Force complete reload
-    // window.location.href = "/login";
   };
   console.log(user, "USER_USER");
   return (

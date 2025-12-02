@@ -1,109 +1,137 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { useResetPasswordMutation } from '@/state/api';
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { useResetPasswordMutation } from "@/state/api";
+
+import { AuthFormWrapper } from "@/app/(components)/AuthFormWrapper";
+import { FormInput } from "@/app/(components)/FormInput";
+import { Alert } from "@/app/(components)/Alert";
+
+interface ResetPasswordFormData {
+  password: string;
+}
 
 export default function ResetPassword() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [resetPassword, { isLoading, isError, error }] = useResetPasswordMutation();
-  const [password, setPassword] = useState('');
-  const [alert, setAlert] = useState({ show: false, text: '', type: 'error' as 'error' | 'success' });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<ResetPasswordFormData>();
+
+  const [resetPassword, { isLoading, isError, error }] =
+    useResetPasswordMutation();
+
+  const [alert, setAlert] = useState({
+    show: false,
+    text: "",
+    type: "error" as "error" | "success",
+  });
+
   const [success, setSuccess] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-  };
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    setAlert({ show: false, text: "", type: "error" });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!password) {
-      setAlert({ show: true, text: 'Please enter password', type: 'error' });
-      return;
-    }
     try {
       await resetPassword({
-        password,
-        token: searchParams.get('token') || '',
-        email: searchParams.get('email') || '',
+        password: data.password,
+        token: searchParams.get("token") || "",
+        email: searchParams.get("email") || "",
       }).unwrap();
+
       setSuccess(true);
+      reset();
+
       setAlert({
         show: true,
-        text: 'Success, redirecting to login page shortly',
-        type: 'success',
+        text: "Password changed successfully! Redirecting to login…",
+        type: "success",
       });
-      setTimeout(() => {
-        router.push('/login');
-      }, 3000);
+
+      setTimeout(() => router.push("/login"), 2500);
     } catch (err: any) {
-      const errorMessage = err?.data?.msg || 'An error occurred';
-      setAlert({ show: true, text: errorMessage, type: 'error' });
+      setAlert({
+        show: true,
+        text: err?.data?.msg || "An error occurred",
+        type: "error",
+      });
     }
   };
 
   useEffect(() => {
     if (isError && error) {
-      const errorMessage = 'data' in error ? (error.data as any)?.msg : 'An error occurred';
-      setAlert({ show: true, text: errorMessage, type: 'error' });
+      const errMsg =
+        "data" in error ? (error.data as any)?.msg : "An error occurred";
+      setAlert({ show: true, text: errMsg, type: "error" });
     }
   }, [isError, error]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {alert.show && (
-          <div
-            className={`p-4 rounded-md ${
-              alert.type === 'success'
-                ? 'bg-green-50 text-green-800'
-                : 'bg-red-50 text-red-800'
-            }`}
-          >
-            {alert.text}
-          </div>
-        )}
-        {!success && (
-          <>
-            <div>
-              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Reset password
-              </h2>
-            </div>
-            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  New Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="New Password"
-                  value={password}
-                  onChange={handleChange}
-                />
-              </div>
+  const closeAlert = () => setAlert({ ...alert, show: false });
 
-              <div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Please Wait...' : 'Set New Password'}
-                </button>
-              </div>
-            </form>
-          </>
-        )}
-      </div>
-    </div>
+  if (success) {
+    return (
+      <AuthFormWrapper
+        title="Password Updated"
+        subtitle="Your password has been successfully reset"
+      >
+        <Alert alert={alert} onClose={closeAlert} />
+
+        <div className="text-center py-6">
+          <div className="text-green-600 text-6xl mb-4">✔️</div>
+          <p className="text-gray-900 mb-2 text-lg font-medium">
+            Redirecting to login…
+          </p>
+
+          <button
+            onClick={() => router.push("/login")}
+            className="inline-flex items-center px-4 py-3 rounded-lg
+              bg-blue-600 text-white text-sm font-medium 
+              hover:bg-blue-700 transition-colors shadow"
+          >
+            Go to Login Now
+          </button>
+        </div>
+      </AuthFormWrapper>
+    );
+  }
+
+  return (
+    <AuthFormWrapper
+      title="Reset Your Password"
+      subtitle="Enter your new password below"
+    >
+      <Alert alert={alert} onClose={closeAlert} />
+
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <FormInput
+          id="password"
+          name="password"
+          type="password"
+          placeholder="New Password"
+          register={register}
+          error={errors.password}
+          required
+          autoComplete="new-password"
+        />
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full flex justify-center py-3 px-4 border border-blue-500 
+            rounded-lg shadow-lg text-sm font-medium text-white bg-blue-600 
+            hover:bg-blue-700 focus:outline-none focus:ring-2 
+            focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 
+            disabled:cursor-not-allowed transition-all duration-200"
+        >
+          {isLoading ? "Updating..." : "Set New Password"}
+        </button>
+      </form>
+    </AuthFormWrapper>
   );
 }
-

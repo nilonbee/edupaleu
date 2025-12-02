@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { cookieOptions } from './cookieOptions';
 import { Response } from 'express';
 
 interface TokenPayload {
@@ -40,17 +41,14 @@ export const attachCookiesToResponse = ({
   const longerExp = 1000 * 60 * 60 * 24 * 30;
 
   res.cookie('accessToken', accessTokenJWT, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    signed: true,
+    ...cookieOptions,        // <-- add this
     expires: new Date(Date.now() + oneDay),
   });
 
   res.cookie('refreshToken', refreshTokenJWT, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    signed: true,
+    ...cookieOptions,          // <-- add this
     expires: new Date(Date.now() + longerExp),
   });
+
 };
 

@@ -6,10 +6,11 @@
     "node": "20.x"
   },
   "scripts": {
-    "build": "npx tsc",
+    "build": "npx prisma generate && npx tsc --skipLibCheck",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "postinstall": "prisma generate"
+    "dev": "nodemon --watch src --watch prisma --ext ts,js,json,prisma --exec \"ts-node src/index.ts\"",
+    "postinstall": "prisma generate",
+    "seed": "npx prisma migrate reset --force && npx prisma generate && npx prisma db push && npx ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -34,9 +35,10 @@
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^24.10.0",
+    "@types/node": "^20.0.0",
     "@types/nodemailer": "^6.4.14",
+    "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.0.0"
   }
 }

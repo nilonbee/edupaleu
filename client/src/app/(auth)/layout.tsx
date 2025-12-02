@@ -10,14 +10,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       className="min-h-screen relative flex flex-col justify-center py-12 sm:px-6 lg:px-8"
       style={{
         backgroundImage:
-          "url(https://ik.imagekit.io/nilonbee/edupaleu/background/small-town-snow.jpg)",
+          "url(https://ik.imagekit.io/nilonbee/edupaleu/background/backdrop.png)",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
       }}
     >
       {/* Overlay for better readability */}
-      <div className="absolute inset-0 bg-black/10"></div>
+      <div className="absolute inset-0 bg-blue-950/5"></div>
 
       {/* Logo */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 mb-8">
@@ -27,7 +27,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             alt="edupal-logo"
             width={200}
             height={200}
-            className="rounded w-32 md:w-64"
+            className="rounded w-36 md:w-72"
           />
         </div>
       </div>

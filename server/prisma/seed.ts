@@ -110,7 +110,7 @@ async function main() {
           'countries': 'Country',
           'users': 'User',
           'universities': 'University',
-          'student': 'Student',  // ← THIS WAS MISSING
+          'student': 'Student',
           'application': 'Application',
           'products': 'Product',
           'expenses': 'Expense',

@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { exec } from 'child_process';
 
-export const getSeeds = (req: Request, res: Response) => {
+export const seedDatabase = (req: Request, res: Response) => {
     console.log('Starting database setup...');
 
-    exec('npx prisma generate && npx prisma db push && npx ts-node prisma/seed.ts',
+    exec('npx prisma migrate reset --force && npx prisma generate && npx prisma db push && npx ts-node prisma/seed.ts',
         (error, stdout, stderr) => {
             if (error) {
                 console.error('Database setup failed:', error);
@@ -15,7 +15,7 @@ export const getSeeds = (req: Request, res: Response) => {
                 });
             }
 
-            console.log('All commands completed successfully');
+            console.log('✅ All commands completed successfully');
             res.json({
                 success: true,
                 message: 'Database setup and seeding completed successfully'

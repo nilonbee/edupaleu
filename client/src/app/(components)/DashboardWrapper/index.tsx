@@ -4,10 +4,10 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Navbar from "@/app/(components)/Navbar";
 import Sidebar from "@/app/(components)/Sidebar";
-import StoreProvider, { useAppSelector } from "./redux";
+import StoreProvider, { useAppSelector } from "@/app/redux";
 import { useGetCurrentUserQuery } from "@/state/api";
 import { setUser, clearUser } from "@/state/authSlice";
-import { useAppDispatch } from "./redux";
+import { useAppDispatch } from "@/app/redux";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();

@@ -13,7 +13,7 @@ import applicationRoutes from './routes/applicationRoutes';
 import universityRoutes from './routes/universityRoutes';
 import applicationStatusRoutes from './routes/applicationStatusRoutes';
 import studentRoutes from './routes/studentRoutes';
-import seedRoutes from './routes/seeds';
+import seedRoutes from './routes/seedRoutes';
 
 import { errorHandlerMiddleware } from './middleware/error-handler';
 import { notFoundMiddleware } from './middleware/not-found';
@@ -44,21 +44,23 @@ app.use(cookieParser(process.env.JWT_SECRET));
 //ROUTES
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/products', productRoutes);
-app.use('/applications', applicationRoutes)
-app.use('/application-status', applicationStatusRoutes)
-app.use('/universities', universityRoutes)
-app.use('/students', studentRoutes)
-app.use('/seed', seedRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/applications', applicationRoutes)
+app.use('/api/v1/application-status', applicationStatusRoutes)
+app.use('/api/v1/universities', universityRoutes)
+app.use('/api/v1/students', studentRoutes)
+app.use('/api/v1/seed', seedRoutes)
+
+
 
 // Error handling
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 
 //SERVER
-const port = process.env.PORT || 3001;
+const port = Number(process.env.PORT) || 3001;
 
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
     console.log(`Server running on port: ${port}`);
 })

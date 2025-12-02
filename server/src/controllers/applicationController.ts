@@ -1,4 +1,3 @@
-// controllers/applicationController.ts
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
@@ -52,7 +51,7 @@ export const getApplications = async (req: Request, res: Response) => {
         res.status(StatusCodes.OK).json(applications);
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            error: "Error fetching applications",
+            error: error.message,
         });
     }
 };
