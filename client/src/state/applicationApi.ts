@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
+import { CreateApplicationRequest, UpdateApplicationRequest, AcademicQualification, University } from '@/types/applications';
 
 export interface Student {
     id: number;
@@ -24,17 +25,8 @@ export interface Student {
     englishTestDate?: string;
 }
 
-export interface University {
-    id: number;
-    name: string;
-    countryId?: number;
-    website?: string;
-    ranking?: number;
-    tuitionFeeRange?: string;
-}
-
-
-import { CreateApplicationRequest, UpdateApplicationRequest, AcademicQualification } from '@/types/applications';
+// Re-export University from types to use as the single source of truth
+export type { University };
 import { Application } from './api';
 
 // API Response type that matches what backend actually returns
@@ -109,7 +101,8 @@ const baseQueryWithFormData: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
     if (result.error && 'status' in result.error && result.error.status === 401) {
         const { clearUser } = await import('./authSlice');
         api.dispatch(clearUser());
-        api.dispatch(api.util.resetApiState());
+        // Note: API state reset should be handled at the store level if needed
+        // api.util is not available in baseQuery callback
     }
     
     return result;

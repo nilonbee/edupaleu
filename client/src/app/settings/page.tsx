@@ -24,21 +24,21 @@ const Settings = () => {
   const userSettings: UserSetting[] = [
     { 
       label: "Full Name", 
-      value: user?.name || "Loading...", 
+      value: user?.user?.name || "Loading...",
       type: "readonly",
       icon: <User className="w-4 h-4" />,
       description: "Your full name as registered"
     },
     { 
-      label: "Email Address", 
-      value: user?.email || "Loading...", 
+      label: "User ID", 
+      value: user?.user?.userId?.toString() || "Loading...",
       type: "readonly",
       icon: <Mail className="w-4 h-4" />,
-      description: "Primary email address for account"
+      description: "Your unique user identifier"
     },
     { 
       label: "Role", 
-      value: user?.role || "User", 
+      value: user?.user?.role || "User",
       type: "readonly",
       icon: <Shield className="w-4 h-4" />,
       description: "Your account role and permissions"
@@ -150,13 +150,13 @@ const Settings = () => {
               <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h2 className="text-2xl font-bold text-white mb-1">
-                {user?.name || "User"}
+              <h2 className="text-2xl font-bold text-white mb-1">       
+                {user?.user?.name || "User"}
               </h2>
-              <p className="text-blue-100 mb-2">{user?.email || "user@example.com"}</p>
+              <p className="text-blue-100 mb-2">{user?.user?.userId || "user@example.com"}</p>
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                 <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full">
-                  {user?.role || "User"}
+                  {user?.user?.role || "User"}
                 </span>
                 <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full">
                   Active

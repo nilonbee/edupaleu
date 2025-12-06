@@ -173,8 +173,8 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
     const { clearUser } = await import('./authSlice');
     api.dispatch(clearUser());
     
-    // Reset API state to clear cached data
-    api.dispatch(api.util.resetApiState());
+    // Note: API state reset should be handled at the store level if needed
+    // api.util is not available in baseQuery callback
   }
   
   return result;

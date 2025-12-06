@@ -26,7 +26,7 @@ export interface Student {
 export interface University {
     id: number;
     name: string;
-    countryId: number;
+    countryId?: number;
     website?: string;
     ranking?: number;
     tuitionFeeRange?: string;

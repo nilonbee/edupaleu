@@ -98,9 +98,10 @@ export const useApplicationSubmission = ({
     const countryId = (universityData as any).countryId ||
       ((universityData as any).country?.id) ||
       (selectedUniversity as any)?.countryId ||
-      0;
+      undefined;
 
-    if (!countryId) {
+    // Validate that countryId exists and is a valid number
+    if (countryId === undefined || countryId === null || countryId === 0) {
       throw new Error('University countryId is required');
     }
 
