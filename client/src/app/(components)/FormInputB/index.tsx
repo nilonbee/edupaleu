@@ -47,8 +47,8 @@ export const FormInputB: React.FC<FormInputBProps> = ({
       placeholder,
       onChange: handleInputChange,
       style: { color: "black" }, // Move style to commonProps
-      className: `w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-        error ? "border-red-500" : "border-gray-300"
+      className: `w-full px-3 py-2 text-sm border rounded shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+        error ? "border-red-500 focus:ring-red-500" : "border-gray-300"
       }`,
     };
 
@@ -58,6 +58,8 @@ export const FormInputB: React.FC<FormInputBProps> = ({
           <select
             {...commonProps}
             style={{ color: "black", backgroundColor: "white" }}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${name}-error` : undefined}
           >
             <option value="">Select {label}</option>
             {options?.map((option) => (
@@ -73,7 +75,14 @@ export const FormInputB: React.FC<FormInputBProps> = ({
         );
 
       case "textarea":
-        return <textarea {...commonProps} rows={3} />;
+        return (
+          <textarea
+            {...commonProps}
+            rows={3}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${name}-error` : undefined}
+          />
+        );
 
       case "checkbox":
         return (
@@ -85,14 +94,21 @@ export const FormInputB: React.FC<FormInputBProps> = ({
                 onChange(e.target.checked.toString());
               }
             }}
-            className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+            className={`h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded ${
               error ? "border-red-500" : ""
             }`}
           />
         );
 
       default:
-        return <input type={type} {...commonProps} />;
+        return (
+          <input
+            type={type}
+            {...commonProps}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${name}-error` : undefined}
+          />
+        );
     }
   };
 
@@ -104,8 +120,9 @@ export const FormInputB: React.FC<FormInputBProps> = ({
             htmlFor={name}
             style={{ color: "black" }}
             className="block text-sm font-medium mb-1"
+            aria-required={required}
           >
-            {label} {required && <span className="text-red-500">*</span>}
+            {label} {required && <span className="text-red-500" aria-label="required">*</span>}
           </label>
           {renderInput()}
         </>
@@ -116,14 +133,15 @@ export const FormInputB: React.FC<FormInputBProps> = ({
             htmlFor={name}
             style={{ color: "black" }}
             className="ml-2 block text-sm"
+            aria-required={required}
           >
-            {label} {required && <span className="text-red-500">*</span>}
+            {label} {required && <span className="text-red-500" aria-label="required">*</span>}
           </label>
         </div>
       )}
 
       {error && (
-        <p style={{ color: "black" }} className="mt-1 text-sm text-red-600">
+        <p id={`${name}-error`} style={{ color: "black" }} className="mt-1 text-sm text-red-600" role="alert">
           {error.message as string}
         </p>
       )}

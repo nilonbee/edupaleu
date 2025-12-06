@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useAppDispatch, useAppSelector } from "@/app/redux";
 import { setStudent } from "@/state/applicationSlice";
-import { useGetStudentsQuery } from "@/state/applicationApi";
+import { useGetStudentsQuery } from "@/state/api";
 import { FormInputB } from "@/app/(components)/FormInputB";
 import { Student } from "@/types/applications";
 
@@ -22,9 +22,15 @@ export const StudentSelection: React.FC = () => {
   const handleStudentSelect = (studentId: string) => {
     const student = students?.find((s) => s.id === parseInt(studentId));
     if (student) {
-      dispatch(setStudent(student));
+      const completeStudent: Student = {
+        ...student,
+        dateOfBirth: "",
+        gender: "MALE",
+        hasEnglishTest: false,
+      };
+      dispatch(setStudent(completeStudent));
 
-      Object.entries(student).forEach(([key, value]) => {
+      Object.entries(completeStudent).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           setValue(key, value);
         }
@@ -39,7 +45,6 @@ export const StudentSelection: React.FC = () => {
       </div>
     );
   }
-  console.log(students, "STD");
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-800 mb-2">

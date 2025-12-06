@@ -1,8 +1,7 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 
 export interface Student {
     id: number;
-    studentId: string;
     firstName: string;
     lastName: string;
     dateOfBirth: string;
@@ -28,45 +27,118 @@ export interface Student {
 export interface University {
     id: number;
     name: string;
-    countryId: number;
+    countryId?: number;
     website?: string;
     ranking?: number;
     tuitionFeeRange?: string;
 }
 
 
-interface CreateApplicationRequest {
-    student: any;
-    universityId: number;
-    academicQualifications: any[];
-    documents: any[];
-    maritalStatus: string;
-    marriageCertificate?: any;
-    intendedPrograms: any[];
+import { CreateApplicationRequest, UpdateApplicationRequest, AcademicQualification } from '@/types/applications';
+import { Application } from './api';
+
+// API Response type that matches what backend actually returns
+export interface ApplicationResponseData {
+    applicationId: number;
+    applicationRef: string;
+    student: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+    };
+    university: {
+        id: number;
+        name: string;
+        website?: string;
+        ranking?: number;
+        countryId?: number;
+        country?: {
+            id: number;
+            name: string;
+            code?: string;
+        };
+    };
+    academicQualifications: AcademicQualification[];
+    documents: Array<{
+        id: number;
+        documentType: string;
+        fileName: string;
+        filePath: string;
+        fileSize?: number;
+        uploadedAt?: string;
+    }>;
+    intendedPrograms: Array<{
+        id?: number;
+        country: string;
+        university: string;
+        programme: string;
+        priority?: number;
+        isPrimary?: boolean;
+    }>;
+    applicationStatus?: {
+        id: number;
+        status: string;
+        description?: string;
+    };
+    submissionDate?: string;
 }
+
+// Custom baseQuery that handles FormData correctly and 401 errors
+const baseQueryWithoutAuth = fetchBaseQuery({
+    baseUrl: '/api/v1/',
+    credentials: 'include', // Include cookies for authentication
+    prepareHeaders: (headers, { endpoint }) => {
+        // Don't set Content-Type for FormData uploads - browser will set it with boundary
+        if (endpoint !== 'uploadDocument') {
+            headers.set('Content-Type', 'application/json');
+        }
+        // For FormData, let browser set Content-Type automatically
+        return headers;
+    },
+});
+
+const baseQueryWithFormData: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+    args,
+    api,
+    extraOptions
+) => {
+    const result = await baseQueryWithoutAuth(args, api, extraOptions);
+    
+    // Handle 401 Unauthorized - clear auth state
+    if (result.error && 'status' in result.error && result.error.status === 401) {
+        const { clearUser } = await import('./authSlice');
+        api.dispatch(clearUser());
+        api.dispatch(api.util.resetApiState());
+    }
+    
+    return result;
+};
 
 export const applicationApi = createApi({
     reducerPath: 'applicationApi',
-    baseQuery: fetchBaseQuery({
-        baseUrl: '/api/v1/',
-        prepareHeaders: (headers) => {
-            headers.set('Content-Type', 'application/json');
-            return headers;
-        },
-    }),
+    baseQuery: baseQueryWithFormData,
     tagTypes: ['Student', 'University', 'Application'],
     endpoints: (builder) => ({
         getStudents: builder.query<Student[], void>({
             query: () => 'students',
             providesTags: ['Student'],
         }),
-        getStudent: builder.query<Student, void>({
+        getStudent: builder.query<Student, number>({
             query: (id) => `students/${id}`,
             providesTags: ['Student'],
         }),
         getUniversities: builder.query<University[], void>({
             query: () => 'universities',
             providesTags: ['University'],
+        }),
+        getApplications: builder.query<Application[], void>({
+            query: () => 'applications',
+            providesTags: ['Application'],
+        }),
+        getApplication: builder.query<{ success: boolean; data: ApplicationResponseData }, number>({
+            query: (id) => `applications/${id}`,
+            providesTags: (result, error, id) => [{ type: 'Application', id }],
         }),
         createApplication: builder.mutation<any, CreateApplicationRequest>({
             query: (applicationData) => ({
@@ -76,9 +148,27 @@ export const applicationApi = createApi({
             }),
             invalidatesTags: ['Application'],
         }),
+        updateApplication: builder.mutation<any, UpdateApplicationRequest>({
+            query: (applicationData) => ({
+                url: `applications/${applicationData.applicationId}`,
+                method: 'PUT',
+                body: applicationData,
+            }),
+            invalidatesTags: (result, error, { applicationId }) => [
+                { type: 'Application', id: applicationId },
+                'Application',
+            ],
+        }),
+        deleteApplication: builder.mutation<void, number>({
+            query: (id) => ({
+                url: `applications/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Application'],
+        }),
         uploadDocument: builder.mutation<any, FormData>({
             query: (formData) => ({
-                url: 'documents/upload',
+                url: 'file-upload/batch',
                 method: 'POST',
                 body: formData,
             }),
@@ -90,6 +180,10 @@ export const {
     useGetStudentsQuery,
     useGetStudentQuery,
     useGetUniversitiesQuery,
+    useGetApplicationsQuery,
+    useGetApplicationQuery,
     useCreateApplicationMutation,
+    useUpdateApplicationMutation,
+    useDeleteApplicationMutation,
     useUploadDocumentMutation,
 } = applicationApi;

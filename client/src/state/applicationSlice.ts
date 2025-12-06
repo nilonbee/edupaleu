@@ -1,29 +1,41 @@
+
 // store/slices/applicationSlice.ts
 import { AcademicQualification, ApplicationDocument, IntendedProgram, Student, University } from '@/types/applications';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { logger } from '@/utils/logger';
+
+// Simple extension for local file storage
+interface LocalApplicationDocument extends ApplicationDocument {
+    fileId?: string; // Reference to file in sessionStorage
+    fileSize?: number;
+    fileType?: string;
+    url?: string; // S3 URL for the document
+}
 
 interface ApplicationState {
     currentStep: number;
-    student: Student | null;
-    selectedUniversity: number | null;
+    student: Student | null | undefined;
+    selectedUniversity: University | undefined | null;
     academicQualifications: AcademicQualification[];
-    documents: ApplicationDocument[];
+    documents: LocalApplicationDocument[];
     maritalStatus: 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';
-    marriageCertificate?: ApplicationDocument;
+    marriageCertificate?: LocalApplicationDocument;
     intendedPrograms: IntendedProgram[];
     completedSteps: number[];
 }
 
 const initialState: ApplicationState = {
     currentStep: 0,
-    student: null,
-    selectedUniversity: null,
+    student: undefined,
+    selectedUniversity: undefined,
     academicQualifications: [],
     documents: [],
     maritalStatus: 'SINGLE',
+    marriageCertificate: undefined,
     intendedPrograms: [],
     completedSteps: [],
 };
+
 
 const applicationSlice = createSlice({
     name: 'application',
@@ -35,7 +47,7 @@ const applicationSlice = createSlice({
         setStudent: (state, action: PayloadAction<Student | null>) => {
             state.student = action.payload;
         },
-        setSelectedUniversity: (state, action: PayloadAction<number>) => {
+        setSelectedUniversity: (state, action: PayloadAction<University>) => {
             state.selectedUniversity = action.payload;
         },
         addAcademicQualification: (state, action: PayloadAction<AcademicQualification>) => {
@@ -47,30 +59,151 @@ const applicationSlice = createSlice({
         removeAcademicQualification: (state, action: PayloadAction<number>) => {
             state.academicQualifications.splice(action.payload, 1);
         },
-        addDocument: (state, action: PayloadAction<ApplicationDocument>) => {
-            state.documents.push(action.payload);
+
+        // MODIFY addDocument to handle sessionStorage cleanup
+        addDocument: (state, action: PayloadAction<LocalApplicationDocument>) => {
+            const newDocument = action.payload;
+
+            // Find existing document of same type
+            const existingIndex = state.documents.findIndex(
+                doc => doc.documentType === newDocument.documentType
+            );
+
+            if (existingIndex !== -1) {
+                // Clean up old file from sessionStorage
+                const oldDoc = state.documents[existingIndex];
+                if (oldDoc.fileId) {
+                    try {
+                        sessionStorage.removeItem(oldDoc.fileId);
+                    } catch (error) {
+                        logger.warn('Failed to remove old file from sessionStorage:', error);
+                    }
+                }
+                // Remove the old document
+                state.documents.splice(existingIndex, 1);
+            }
+
+            // Add the new document
+            state.documents.push(newDocument);
         },
+
+        // MODIFY removeDocument to clean up sessionStorage
+        removeDocument: (state, action: PayloadAction<string>) => {
+            const documentType = action.payload;
+            const docIndex = state.documents.findIndex(doc => doc.documentType === documentType);
+
+            if (docIndex !== -1) {
+                const doc = state.documents[docIndex];
+                // Clean up file from sessionStorage
+                if (doc.fileId) {
+                    try {
+                        sessionStorage.removeItem(doc.fileId);
+                    } catch (error) {
+                        logger.warn('Failed to remove file from sessionStorage:', error);
+                    }
+                }
+                // Remove from state
+                state.documents.splice(docIndex, 1);
+            }
+        },
+
+        // MODIFY setMarriageCertificate to handle sessionStorage
+        setMarriageCertificate: (state, action: PayloadAction<LocalApplicationDocument | undefined>) => {
+            // Clean up old file from sessionStorage if exists
+            if (state.marriageCertificate?.fileId) {
+                try {
+                    sessionStorage.removeItem(state.marriageCertificate.fileId);
+                } catch (error) {
+                    logger.warn('Failed to remove old marriage certificate from sessionStorage:', error);
+                }
+            }
+
+            state.marriageCertificate = action.payload;
+        },
+
+        // MODIFY resetApplication to clean up all sessionStorage
+        resetApplication: (state) => {
+            // Clean up all document files from sessionStorage
+            state.documents.forEach(doc => {
+                if (doc.fileId) {
+                    try {
+                        sessionStorage.removeItem(doc.fileId);
+                    } catch (error) {
+                        logger.warn('Failed to remove file from sessionStorage:', error);
+                    }
+                }
+            });
+
+            // Clean up marriage certificate file
+            if (state.marriageCertificate?.fileId) {
+                try {
+                    sessionStorage.removeItem(state.marriageCertificate.fileId);
+                } catch (error) {
+                    logger.warn('Failed to remove marriage certificate from sessionStorage:', error);
+                }
+            }
+
+            // Return fresh initialState
+            return initialState;
+        },
+
+        // In your applicationSlice.ts
+        setDocumentS3Url: (state, action: PayloadAction<{ documentType: string; s3Url: string }>) => {
+            const { documentType, s3Url } = action.payload;
+
+            // Update in documents array
+            const docIndex = state.documents.findIndex(doc => doc.documentType === documentType);
+            if (docIndex !== -1) {
+                state.documents[docIndex].url = s3Url;
+            }
+
+            // Update in marriageCertificate if applicable
+            if (state.marriageCertificate?.documentType === documentType) {
+                state.marriageCertificate.url = s3Url;
+            }
+        },
+
         setMaritalStatus: (state, action: PayloadAction<ApplicationState['maritalStatus']>) => {
             state.maritalStatus = action.payload;
         },
-        setMarriageCertificate: (state, action: PayloadAction<ApplicationDocument | undefined>) => {
-            state.marriageCertificate = action.payload;
-        },
+
         addIntendedProgram: (state, action: PayloadAction<IntendedProgram>) => {
             state.intendedPrograms.push(action.payload);
         },
+
         updateIntendedProgram: (state, action: PayloadAction<{ index: number; program: IntendedProgram }>) => {
             state.intendedPrograms[action.payload.index] = action.payload.program;
         },
+
         removeIntendedProgram: (state, action: PayloadAction<number>) => {
             state.intendedPrograms.splice(action.payload, 1);
         },
+
         completeStep: (state, action: PayloadAction<number>) => {
             if (!state.completedSteps.includes(action.payload)) {
                 state.completedSteps.push(action.payload);
             }
         },
-        resetApplication: () => initialState,
+
+        loadApplicationData: (state, action: PayloadAction<{
+            student: Student;
+            university: University;
+            academicQualifications: AcademicQualification[];
+            documents: LocalApplicationDocument[];
+            maritalStatus: ApplicationState['maritalStatus'];
+            marriageCertificate?: LocalApplicationDocument;
+            intendedPrograms: IntendedProgram[];
+        }>) => {
+            state.student = action.payload.student;
+            state.selectedUniversity = action.payload.university;
+            state.academicQualifications = action.payload.academicQualifications;
+            state.documents = action.payload.documents;
+            state.maritalStatus = action.payload.maritalStatus;
+            state.marriageCertificate = action.payload.marriageCertificate;
+            state.intendedPrograms = action.payload.intendedPrograms;
+            state.completedSteps = Array.from({ length: 8 }, (_, i) => i);
+        },
+
     },
 });
 
@@ -82,6 +215,7 @@ export const {
     updateAcademicQualification,
     removeAcademicQualification,
     addDocument,
+    removeDocument,
     setMaritalStatus,
     setMarriageCertificate,
     addIntendedProgram,
@@ -89,6 +223,18 @@ export const {
     removeIntendedProgram,
     completeStep,
     resetApplication,
+    setDocumentS3Url,
+    loadApplicationData,
 } = applicationSlice.actions;
+
+// Selectors
+export const selectDocuments = (state: { application: ApplicationState }) =>
+    state.application.documents || [];
+
+export const selectDocumentByType = (documentType: string) => (state: { application: ApplicationState }) =>
+    (state.application.documents || []).find(doc => doc.documentType === documentType);
+
+export const selectAcademicQualifications = (state: { application: ApplicationState }) =>
+    state.application.academicQualifications || [];
 
 export default applicationSlice.reducer;

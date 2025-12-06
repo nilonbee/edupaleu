@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       className="min-h-screen relative flex flex-col justify-center py-12 sm:px-6 lg:px-8"
       style={{
         backgroundImage:
-          "url(https://ik.imagekit.io/nilonbee/edupaleu/background/backdrop.png)",
+          "url(https://ik.imagekit.io/nilonbee/edupaleu/background/backdrop.png?updatedAt=1764747813053)",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -18,19 +18,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     >
       {/* Overlay for better readability */}
       <div className="absolute inset-0 bg-blue-950/5"></div>
-
-      {/* Logo */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 mb-8">
-        <div className="flex justify-center">
-          <Image
-            src="https://ik.imagekit.io/nilonbee/edupaleu/Png.png"
-            alt="edupal-logo"
-            width={200}
-            height={200}
-            className="rounded w-36 md:w-72"
-          />
-        </div>
-      </div>
 
       {/* Content */}
       <div className="relative z-10">{children}</div>

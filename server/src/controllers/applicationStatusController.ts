@@ -1,9 +1,7 @@
 // controllers/applicationStatusController.ts
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export const getApplicationStatuses = async (req: Request, res: Response) => {
     try {

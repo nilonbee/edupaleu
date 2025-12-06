@@ -1,13 +1,25 @@
 // app/application/new/NewApplicationClient.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import WizardForm from "@/app/(components)/WizardForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/app/redux";
+import { resetApplication } from "@/state/applicationSlice";
+import { clearAllSessionFiles } from "@/utils/getFileFromSessionStorage";
+import { APPLICATION_CONSTANTS } from "@/utils/constants";
 
 const NewApplicationPage = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    // Start with a clean slate so previous form data does not leak
+    dispatch(resetApplication());
+    clearAllSessionFiles();
+    localStorage.removeItem(APPLICATION_CONSTANTS.STORAGE_KEYS.APPLICATION_WIZARD);
+  }, [dispatch]);
 
   return (
     <div className="min-h-screen bg-gray-50">

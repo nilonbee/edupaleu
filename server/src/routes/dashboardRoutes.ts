@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { getDashboardMetrics } from "../controllers/dashboardController";
+import { authenticateUser } from "../middleware/authentication";
 
 const router = Router();
 
-router.get("/", getDashboardMetrics);
+// Dashboard requires authentication
+router.get("/", authenticateUser, getDashboardMetrics);
 
 export default router;

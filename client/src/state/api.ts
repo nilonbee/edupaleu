@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
 
 export interface Product {
   productId: string;
@@ -153,10 +153,32 @@ export interface Application {
   assignedAgent?: User; // Using your existing User interface
 }
 
-const baseQuery = fetchBaseQuery({
+const baseQueryWithoutAuth = fetchBaseQuery({
   baseUrl: '/api/v1/',
   credentials: "include", // This ensures cookies are sent with requests
 });
+
+// Wrap baseQuery to handle 401 errors globally
+const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
+  const result = await baseQueryWithoutAuth(args, api, extraOptions);
+  
+  // Handle 401 Unauthorized - clear auth state
+  // Note: Actual redirect is handled in DashboardWrapper based on auth state
+  if (result.error && 'status' in result.error && result.error.status === 401) {
+    // Import dynamically to avoid circular dependencies
+    const { clearUser } = await import('./authSlice');
+    api.dispatch(clearUser());
+    
+    // Reset API state to clear cached data
+    api.dispatch(api.util.resetApiState());
+  }
+  
+  return result;
+};
 
 export const api = createApi({
   baseQuery,

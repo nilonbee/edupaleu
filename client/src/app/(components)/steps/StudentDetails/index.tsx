@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useAppSelector } from "@/app/redux";
 import { FormInputB } from "@/app/(components)/FormInputB";
+import { logger } from "@/utils/logger";
 
 export const StudentDetails: React.FC = () => {
   const { watch, setValue } = useFormContext();
@@ -28,7 +29,7 @@ export const StudentDetails: React.FC = () => {
   // Pre-populate form fields from Redux state
   useEffect(() => {
     if (student) {
-      console.log("Pre-populating form with student data:", student);
+      logger.log("Pre-populating form with student data:", student);
 
       // Basic information
       setValue("firstName", student.firstName || "");

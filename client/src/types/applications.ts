@@ -57,3 +57,17 @@ export interface IntendedProgram {
     programme: string;
     university: string;
 }
+
+export interface CreateApplicationRequest {
+    student: Student;
+    university: University;
+    academicQualifications: AcademicQualification[];
+    documents: ApplicationDocument[];
+    maritalStatus: 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';
+    marriageCertificate?: ApplicationDocument;
+    intendedPrograms: IntendedProgram[];
+}
+
+export interface UpdateApplicationRequest extends CreateApplicationRequest {
+    applicationId: number;
+}

@@ -1,7 +1,6 @@
 [
   {
     "id": 1,
-    "studentId": "STU2024001",
     "firstName": "Maria",
     "lastName": "Garcia",
     "dateOfBirth": "2000-05-15T00:00:00.000Z",
@@ -26,7 +25,6 @@
   },
   {
     "id": 2,
-    "studentId": "STU2024002",
     "firstName": "Ahmed",
     "lastName": "Khan",
     "displayPicture": "https://ik.imagekit.io/nilonbee/edupaleu/avatars/androgynous-avatar-non-binary-queer-person.jpg",
@@ -51,7 +49,6 @@
   },
   {
     "id": 3,
-    "studentId": "STU2024003",
     "firstName": "Wei",
     "lastName": "Zhang",
     "dateOfBirth": "2001-03-10T00:00:00.000Z",
@@ -76,7 +73,6 @@
   },
   {
     "id": 4,
-    "studentId": "STU2024004",
     "firstName": "Sophie",
     "lastName": "Johnson",
     "displayPicture": "https://ik.imagekit.io/nilonbee/edupaleu/avatars/androgynous-avatar-non-binary-queer-person.jpg",
@@ -101,7 +97,6 @@
   },
   {
     "id": 5,
-    "studentId": "STU2024005",
     "firstName": "Kenji",
     "lastName": "Tanaka",
     "displayPicture": "https://ik.imagekit.io/nilonbee/edupaleu/avatars/androgynous-avatar-non-binary-queer-person.jpg",

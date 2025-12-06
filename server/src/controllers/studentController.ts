@@ -1,16 +1,13 @@
 // controllers/studentController.ts
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export const getStudents = async (req: Request, res: Response) => {
     try {
         const students = await prisma.student.findMany({
             select: {
                 id: true,
-                studentId: true,
                 firstName: true,
                 lastName: true,
                 email: true,

@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { createTokenUser } from '../utils/createTokenUser';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export const showMe = async (req: Request, res: Response): Promise<void> => {
   const userId = (req as any).user?.userId;

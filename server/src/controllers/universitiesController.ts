@@ -1,9 +1,7 @@
 // controllers/universityController.ts
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 // controllers/universityController.ts
 export const getUniversities = async (req: Request, res: Response) => {

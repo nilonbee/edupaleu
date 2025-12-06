@@ -8,6 +8,8 @@ import {
   removeIntendedProgram,
 } from "@/state/applicationSlice";
 import { FormInputB } from "@/app/(components)/FormInputB";
+import { logger } from "@/utils/logger";
+import { showToast } from "@/utils/toast";
 
 export const IntendedPrograms: React.FC = () => {
   const { setValue, getValues, watch } = useFormContext();
@@ -45,13 +47,13 @@ export const IntendedPrograms: React.FC = () => {
       !programData.programme ||
       !programData.university
     ) {
-      alert(
+      showToast.error(
         "Please fill all required fields: Country, Programme, and University"
       );
       return;
     }
 
-    console.log("Adding/Updating program:", programData); // Debug log
+    logger.log("Adding/Updating program:", programData);
 
     if (editingIndex !== null) {
       dispatch(
@@ -61,15 +63,14 @@ export const IntendedPrograms: React.FC = () => {
         })
       );
       setEditingIndex(null);
-      console.log("Updated program at index:", editingIndex);
+      logger.log("Updated program at index:", editingIndex);
     } else {
       dispatch(addIntendedProgram(programData));
-      console.log("Added new program");
+      logger.log("Added new program");
     }
 
     // Reset the form fields
     resetProgramForm();
-    console.log("Current programs in Redux:", intendedPrograms); // Debug log
   };
 
   const resetProgramForm = () => {
@@ -84,7 +85,7 @@ export const IntendedPrograms: React.FC = () => {
     setValue("programProgramme", program.programme);
     setValue("programUniversity", program.university);
     setEditingIndex(index);
-    console.log("Editing program:", program);
+    logger.log("Editing program:", program);
   };
 
   const handleDelete = (index: number) => {
@@ -93,7 +94,7 @@ export const IntendedPrograms: React.FC = () => {
       setEditingIndex(null);
       resetProgramForm();
     }
-    console.log("Deleted program at index:", index);
+    logger.log("Deleted program at index:", index);
   };
 
   const handleCancelEdit = (e: React.MouseEvent) => {

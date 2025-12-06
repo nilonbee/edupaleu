@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
@@ -13,8 +12,7 @@ import { createTokenUser } from '../utils/createTokenUser';
 import { sendVerificationEmail } from '../utils/sendVerificationEmail';
 import { sendResetPasswordEmail } from '../utils/sendResetPasswordEmail';
 import { createHash } from '../utils/createHash';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
     const { email, firstName, lastName, password } = req.body;

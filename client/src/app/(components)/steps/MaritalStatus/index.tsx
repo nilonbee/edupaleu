@@ -5,24 +5,16 @@ import {
   setMaritalStatus,
   setMarriageCertificate,
 } from "@/state/applicationSlice";
-import { useUploadDocumentMutation } from "@/state/applicationApi";
-import { useGetUniversitiesQuery } from "@/state/api";
 import { FormInputB } from "@/app/(components)/FormInputB";
-import { University } from "@/types/applications";
 import { useFormContext } from "react-hook-form";
+import { logger } from "@/utils/logger";
+import { showToast } from "@/utils/toast";
 
 export const MaritalStatus: React.FC = () => {
   const dispatch = useAppDispatch();
-  const {
-    maritalStatus,
-    marriageCertificate,
-    student,
-    selectedUniversity,
-    academicQualifications,
-    documents,
-    intendedPrograms,
-  } = useAppSelector((state) => state.application);
-  const [uploadDocument, { isLoading }] = useUploadDocumentMutation();
+  const { maritalStatus, marriageCertificate } = useAppSelector(
+    (state) => state.application
+  );
   const maritalStatusOptions = [
     { value: "SINGLE", label: "Single" },
     { value: "MARRIED", label: "Married" },
@@ -35,18 +27,18 @@ export const MaritalStatus: React.FC = () => {
     setValue("maritalStatus", maritalStatus);
   }, [maritalStatus, setValue]);
 
-  // Use a generic handler that accepts any element type
   const handleMaritalStatusChange = (value: string) => {
     dispatch(setMaritalStatus(value as any));
   };
 
-  // Or if you want to keep the event structure:
-  const handleMaritalStatusChangeWithEvent = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    dispatch(setMaritalStatus(e.target.value as any));
+  // Helper function to convert file to base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleMarriageCertificateUpload = useCallback(
@@ -59,40 +51,74 @@ export const MaritalStatus: React.FC = () => {
       const maxSize = 5 * 1024 * 1024; // 5MB
 
       if (!validTypes.includes(file.type)) {
-        alert("Please upload a PDF, JPEG, or PNG file");
+        showToast.error("Please upload a PDF, JPEG, or PNG file");
         return;
       }
 
       if (file.size > maxSize) {
-        alert("File size must be less than 5MB");
+        showToast.error("File size must be less than 5MB");
         return;
       }
 
       try {
-        const formData = new FormData();
-        formData.append("document", file);
-        formData.append("documentType", "MARRIAGE_CERTIFICATE");
+        // Convert file to base64
+        const base64Data = await convertFileToBase64(file);
 
-        const result = await uploadDocument(formData).unwrap();
+        // Create unique file ID
+        const fileId = `marriage_cert_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
 
+        // Store file data in sessionStorage
+        const fileData = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          lastModified: file.lastModified,
+          data: base64Data,
+        };
+
+        sessionStorage.setItem(fileId, JSON.stringify(fileData));
+
+        // Store reference in Redux (serializable data only)
         dispatch(
           setMarriageCertificate({
             documentType: "MARRIAGE_CERTIFICATE",
             fileName: file.name,
-            filePath: result.filePath,
+            fileId: fileId, // Only store reference ID
             fileSize: file.size,
+            // Don't store file object or base64 data in Redux
+            filePath: "", // Will be filled after S3 upload
           })
         );
+
+        logger.log("Marriage certificate stored locally:", file.name);
+        showToast.success("Marriage certificate uploaded successfully");
 
         // Reset file input
         event.target.value = "";
       } catch (error) {
-        console.error("Upload failed:", error);
-        alert("Failed to upload marriage certificate. Please try again.");
+        logger.error("Error processing marriage certificate:", error);
+        showToast.error("Failed to process marriage certificate. Please try again.");
       }
     },
-    [dispatch, uploadDocument]
+    [dispatch]
   );
+
+  const handleRemoveCertificate = useCallback(() => {
+    // Clean up from sessionStorage before removing from Redux
+    if (marriageCertificate?.fileId) {
+      try {
+        sessionStorage.removeItem(marriageCertificate.fileId);
+        logger.log("Removed marriage certificate from sessionStorage");
+      } catch (error) {
+        logger.warn("Failed to remove file from sessionStorage:", error);
+      }
+    }
+
+    // Remove from Redux
+    dispatch(setMarriageCertificate(undefined));
+  }, [dispatch, marriageCertificate]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -120,7 +146,6 @@ export const MaritalStatus: React.FC = () => {
         />
       </div>
 
-      {/* Rest of the component remains the same */}
       {maritalStatus === "MARRIED" && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">
@@ -143,11 +168,13 @@ export const MaritalStatus: React.FC = () => {
                       {formatFileSize(marriageCertificate.fileSize)}
                     </p>
                   )}
+                  <p className="text-green-600 text-xs mt-1">
+                    ✅ Stored locally (will upload on submission)
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-green-600 text-sm">✓ Uploaded</span>
                   <button
-                    onClick={() => dispatch(setMarriageCertificate())}
+                    onClick={handleRemoveCertificate}
                     className="text-red-600 hover:text-red-800 text-sm"
                   >
                     Remove
@@ -163,13 +190,10 @@ export const MaritalStatus: React.FC = () => {
                 onChange={handleMarriageCertificateUpload}
                 className="hidden"
                 accept=".pdf,.jpg,.jpeg,.png"
-                disabled={isLoading}
               />
               <label
                 htmlFor="marriageCertificate"
-                className={`cursor-pointer block ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className="cursor-pointer block"
               >
                 <div className="text-gray-400 mb-3">
                   <svg
@@ -187,10 +211,13 @@ export const MaritalStatus: React.FC = () => {
                   </svg>
                 </div>
                 <span className="text-gray-600 font-medium">
-                  {isLoading ? "Uploading..." : "Upload Marriage Certificate"}
+                  Upload Marriage Certificate
                 </span>
                 <p className="text-sm text-gray-500 mt-2">
                   PDF, JPG, PNG (Max 5MB)
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  File will be stored locally until final submission
                 </p>
               </label>
             </div>

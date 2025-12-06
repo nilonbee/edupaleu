@@ -1,0 +1,11 @@
+{
+  "watch": ["src", "prisma", "node_modules/.prisma"],
+  "ext": "ts,js,json,prisma",
+  "exec": "npx tsx src/index.ts",
+  "ignore": ["node_modules/**", "!node_modules/.prisma", "dist", "*.test.ts", "*.spec.ts"],
+  "delay": "1000",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
+

@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { UnauthenticatedError } from '../errors';
 import { isTokenValid } from '../utils/jwt';
 import { attachCookiesToResponse } from '../utils/jwt';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export const authenticateUser = async (
   req: Request,

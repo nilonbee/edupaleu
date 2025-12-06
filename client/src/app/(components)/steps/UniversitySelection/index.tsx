@@ -1,15 +1,28 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useFormContext } from "react-hook-form";
 import { useAppDispatch, useAppSelector } from "@/app/redux";
 import { setSelectedUniversity } from "@/state/applicationSlice";
 import { useGetUniversitiesQuery } from "@/state/applicationApi";
 import { FormInputB } from "@/app/(components)/FormInputB";
 
 export const UniversitySelection: React.FC = () => {
+  const { setValue } = useFormContext();
   const dispatch = useAppDispatch();
   const { selectedUniversity } = useAppSelector((state) => state.application);
   const { data: universities, isLoading, error } = useGetUniversitiesQuery();
-  const handleUniversitySelect = (value: any) => {
-    dispatch(setSelectedUniversity(value));
+
+  // Populate form field when university is loaded from Redux
+  useEffect(() => {
+    if (selectedUniversity?.id) {
+      setValue("universityId", selectedUniversity.id.toString());
+    }
+  }, [selectedUniversity, setValue]);
+
+  const handleUniversitySelect = (value: string) => {
+    const university = universities?.find((u) => u.id.toString() === value);
+    if (university) {
+      dispatch(setSelectedUniversity(university));
+    }
   };
 
   if (isLoading) {
@@ -45,7 +58,7 @@ export const UniversitySelection: React.FC = () => {
       {selectedUniversity && (
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
           <h3 className="font-semibold text-blue-800 mb-2">
-            {selectedUniversity}
+            {selectedUniversity.name}
           </h3>
         </div>
       )}
