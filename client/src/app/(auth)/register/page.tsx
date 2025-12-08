@@ -8,6 +8,7 @@ import { useRegisterMutation } from "@/state/api";
 import { AuthFormWrapper } from "@/app/(components)/AuthFormWrapper";
 import { FormInput } from "@/app/(components)/FormInput";
 import { Alert } from "@/app/(components)/Alert";
+import Button from "@/app/(components)/Button";
 
 interface RegisterFormData {
   firstName: string;
@@ -115,20 +116,15 @@ export default function Register() {
           </div>
 
           <div>
-            <button
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center py-3 px-4 border border-blue-500 rounded-lg shadow-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              variant="gradient"
+              size="md"
+              isLoading={isLoading}
+              className="w-full"
             >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating account...
-                </div>
-              ) : (
-                "Create Account"
-              )}
-            </button>
+              Create Account
+            </Button>
           </div>
 
           <div className="text-sm text-center">
@@ -136,7 +132,7 @@ export default function Register() {
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
               >
                 Sign in here
               </Link>
@@ -152,12 +148,14 @@ export default function Register() {
           <p className="text-gray-600 text-sm mb-6">
             Please check your email to verify your account.
           </p>
-          <Link
+          <Button
+            as="link"
             href="/login"
-            className="inline-flex items-center px-4 py-2 border border-blue-500 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            variant="gradient"
+            size="md"
           >
             Go to Login
-          </Link>
+          </Button>
         </div>
       )}
     </AuthFormWrapper>

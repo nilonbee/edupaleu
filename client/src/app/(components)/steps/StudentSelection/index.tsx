@@ -76,7 +76,7 @@ export const StudentSelection: React.FC = () => {
 
       <div className="text-center">
         <p className="text-gray-600 mb-4">
-          Can't find your student? Continue to fill the student details
+          Can&apos;t find your student? Continue to fill the student details
           manually.
         </p>
       </div>

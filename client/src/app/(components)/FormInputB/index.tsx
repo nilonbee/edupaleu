@@ -47,8 +47,8 @@ export const FormInputB: React.FC<FormInputBProps> = ({
       placeholder,
       onChange: handleInputChange,
       style: { color: "black" }, // Move style to commonProps
-      className: `w-full px-3 py-2 text-sm border rounded shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-        error ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+      className: `w-full px-3 py-2 text-sm border rounded-lg shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+        error ? "border-red-500 focus:ring-red-500" : "border-slate-300"
       }`,
     };
 
@@ -94,7 +94,7 @@ export const FormInputB: React.FC<FormInputBProps> = ({
                 onChange(e.target.checked.toString());
               }
             }}
-            className={`h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded ${
+            className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded ${
               error ? "border-red-500" : ""
             }`}
           />

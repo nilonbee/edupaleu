@@ -103,11 +103,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     <div
       className={`${
         isDarkMode ? "dark" : "light"
-      } flex bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-900 dark:text-gray-100 w-full min-h-screen`}
+      } flex bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/40 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 text-slate-900 dark:text-slate-100 w-full min-h-screen`}
     >
       <Sidebar />
       <main
-        className={`flex flex-col w-full h-full py-7 px-9 bg-gradient-to-br from-gray-50/80 via-blue-50/10 to-indigo-50/20 dark:from-gray-900/80 dark:via-gray-800/80 dark:to-gray-900/80 backdrop-blur-sm ${
+        className={`flex flex-col w-full h-full py-7 px-9 bg-gradient-to-br from-slate-50/80 via-blue-50/20 to-indigo-100/30 dark:from-slate-900/80 dark:via-slate-800/80 dark:to-indigo-950/80 backdrop-blur-sm ${
           isSidebarCollapsed ? "md:pl-24" : "md:pl-72"
         }`}
       >

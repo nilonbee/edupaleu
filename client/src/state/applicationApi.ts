@@ -29,6 +29,50 @@ export interface Student {
 export type { University };
 import { Application } from './api';
 
+// Query parameters for getApplications
+export interface GetApplicationsParams {
+    search?: string;
+    status?: string | string[];
+    sort_by?: string;
+    order?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+}
+
+// Response type for paginated applications
+export interface ApplicationsResponse {
+    success: boolean;
+    data: Application[];
+    pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+    };
+}
+
+// Status update request/response
+export interface UpdateStatusRequest {
+    applicationId: number;
+    status: string;
+}
+
+export interface UpdateStatusResponse {
+    success: boolean;
+    message: string;
+    data: {
+        id: number;
+        applicationRef: string;
+        status: {
+            id: number;
+            status: string;
+            description?: string;
+        };
+    };
+}
+
 // API Response type that matches what backend actually returns
 export interface ApplicationResponseData {
     applicationId: number;
@@ -125,8 +169,24 @@ export const applicationApi = createApi({
             query: () => 'universities',
             providesTags: ['University'],
         }),
-        getApplications: builder.query<Application[], void>({
-            query: () => 'applications',
+        getApplications: builder.query<ApplicationsResponse | Application[], GetApplicationsParams | void>({
+            query: (params) => {
+                const searchParams = new URLSearchParams();
+                const queryParams = params || {};
+                
+                if (queryParams.search) searchParams.append('search', queryParams.search);
+                if (queryParams.status) {
+                    const statusArray = Array.isArray(queryParams.status) ? queryParams.status : [queryParams.status];
+                    searchParams.append('status', statusArray.join(','));
+                }
+                if (queryParams.sort_by) searchParams.append('sort_by', queryParams.sort_by);
+                if (queryParams.order) searchParams.append('order', queryParams.order);
+                if (queryParams.page) searchParams.append('page', queryParams.page.toString());
+                if (queryParams.limit) searchParams.append('limit', queryParams.limit.toString());
+
+                const queryString = searchParams.toString();
+                return `applications${queryString ? `?${queryString}` : ''}`;
+            },
             providesTags: ['Application'],
         }),
         getApplication: builder.query<{ success: boolean; data: ApplicationResponseData }, number>({
@@ -159,6 +219,17 @@ export const applicationApi = createApi({
             }),
             invalidatesTags: ['Application'],
         }),
+        updateApplicationStatus: builder.mutation<UpdateStatusResponse, UpdateStatusRequest>({
+            query: ({ applicationId, status }) => ({
+                url: `applications/${applicationId}/status`,
+                method: 'PATCH',
+                body: { status },
+            }),
+            invalidatesTags: (result, error, { applicationId }) => [
+                { type: 'Application', id: applicationId },
+                'Application',
+            ],
+        }),
         uploadDocument: builder.mutation<any, FormData>({
             query: (formData) => ({
                 url: 'file-upload/batch',
@@ -178,5 +249,6 @@ export const {
     useCreateApplicationMutation,
     useUpdateApplicationMutation,
     useDeleteApplicationMutation,
+    useUpdateApplicationStatusMutation,
     useUploadDocumentMutation,
 } = applicationApi;

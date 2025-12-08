@@ -1,10 +1,31 @@
-import { useGetApplicationsQuery } from "@/state/api";
+import { useGetApplicationsQuery } from "@/state/applicationApi";
 import { FileText, Calendar, User } from "lucide-react";
 import React from "react";
 import Image from "next/image";
 
 export const CardRecentApplications = () => {
-  const { data: applications, isLoading } = useGetApplicationsQuery();
+  // Fetch only recent applications (limit to 5 for dashboard)
+  const { data: applicationsResponse, isLoading } = useGetApplicationsQuery({
+    limit: 5,
+    sort_by: 'updatedAt',
+    order: 'desc',
+  });
+
+  // Extract applications array from response (handles both array and response object formats)
+  const applications = React.useMemo(() => {
+    if (!applicationsResponse) return [];
+    
+    // Handle both old array format and new response format
+    if (Array.isArray(applicationsResponse)) {
+      return applicationsResponse;
+    }
+    
+    if ('data' in applicationsResponse && Array.isArray(applicationsResponse.data)) {
+      return applicationsResponse.data;
+    }
+    
+    return [];
+  }, [applicationsResponse]);
 
   // Function to get status color
   const getStatusColor = (status: string) => {
@@ -14,7 +35,7 @@ export const CardRecentApplications = () => {
       under_review: "bg-yellow-100 text-yellow-600",
       rejected: "bg-red-100 text-red-600",
       draft: "bg-gray-100 text-gray-600",
-      waitlisted: "bg-orange-100 text-orange-600",
+      waitlisted: "bg-cyan-100 text-cyan-600",
       visa_applied: "bg-purple-100 text-purple-600",
       enrolled: "bg-emerald-100 text-emerald-600",
       additional_docs_required: "bg-amber-100 text-amber-600",
@@ -44,7 +65,12 @@ export const CardRecentApplications = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0">
-            {applications?.map((application) => (
+            {applications.length === 0 ? (
+              <div className="text-center text-gray-500 py-8 px-5">
+                No recent applications
+              </div>
+            ) : (
+              applications.map((application) => (
               <div
                 key={application.id}
                 className="flex items-center justify-between gap-3 px-5 py-4 border-b hover:bg-gray-50 transition-colors"
@@ -107,7 +133,8 @@ export const CardRecentApplications = () => {
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </>
       )}

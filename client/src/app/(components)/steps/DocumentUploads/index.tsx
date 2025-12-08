@@ -343,7 +343,7 @@ export const DocumentsUpload: React.FC = () => {
       <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm">
         <p className="font-medium text-gray-700 mb-2">📌 How it works:</p>
         <ol className="list-decimal list-inside space-y-1 text-gray-600">
-          <li>Select files - they're stored in your browser session</li>
+          <li>Select files - they&apos;re stored in your browser session</li>
           <li>Complete all steps of the application</li>
           <li>Files will be uploaded to cloud storage when you submit</li>
           <li>Files will be cleared when you close the browser</li>

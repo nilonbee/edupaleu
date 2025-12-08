@@ -5,10 +5,87 @@ import prisma from '../lib/prisma';
 
 export const getApplications = async (req: Request, res: Response) => {
     try {
+        // Extract query parameters
+        const {
+            search,
+            status,
+            sort_by = 'updatedAt',
+            order = 'desc',
+            page = '1',
+            limit = '10'
+        } = req.query;
+
+        // Parse pagination parameters
+        const pageNumber = parseInt(page as string, 10) || 1;
+        const limitNumber = parseInt(limit as string, 10) || 10;
+        const skip = (pageNumber - 1) * limitNumber;
+
+        // Build where clause for filtering
+        const where: any = {};
+
+        // Status filter - support multiple statuses (comma-separated)
+        if (status) {
+            const statusArray = (status as string).split(',').map(s => s.trim());
+            const statusRecords = await prisma.applicationStatus.findMany({
+                where: {
+                    status: {
+                        in: statusArray.map(s => s.toUpperCase())
+                    }
+                },
+                select: { id: true }
+            });
+            const statusIds = statusRecords.map(s => s.id);
+            if (statusIds.length > 0) {
+                where.applicationStatusId = {
+                    in: statusIds
+                };
+            }
+        }
+
+        // Global search - search across applicationRef, student name, university name, program
+        if (search) {
+            const searchTerm = (search as string).trim();
+            where.OR = [
+                { applicationRef: { contains: searchTerm, mode: 'insensitive' } },
+                { intendedProgram: { contains: searchTerm, mode: 'insensitive' } },
+                {
+                    student: {
+                        OR: [
+                            { firstName: { contains: searchTerm, mode: 'insensitive' } },
+                            { lastName: { contains: searchTerm, mode: 'insensitive' } },
+                            { email: { contains: searchTerm, mode: 'insensitive' } }
+                        ]
+                    }
+                },
+                {
+                    university: {
+                        name: { contains: searchTerm, mode: 'insensitive' }
+                    }
+                }
+            ];
+        }
+
+        // Build orderBy clause
+        const validSortFields: { [key: string]: string } = {
+            'applicationRef': 'applicationRef',
+            'updatedAt': 'updatedAt',
+            'createdAt': 'createdAt',
+            'submissionDate': 'submissionDate'
+        };
+
+        const sortField = validSortFields[sort_by as string] || 'updatedAt';
+        const sortOrder = (order as string).toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+        // Get total count for pagination
+        const totalCount = await prisma.application.count({ where });
+
+        // Fetch applications with pagination
         const applications = await prisma.application.findMany({
-            take: 10,
+            where,
+            skip,
+            take: limitNumber,
             orderBy: {
-                updatedAt: 'desc',
+                [sortField]: sortOrder,
             },
             include: {
                 student: {
@@ -46,9 +123,25 @@ export const getApplications = async (req: Request, res: Response) => {
             }
         });
 
-        res.status(StatusCodes.OK).json(applications);
-    } catch (error) {
+        // Calculate pagination metadata
+        const totalPages = Math.ceil(totalCount / limitNumber);
+
+        res.status(StatusCodes.OK).json({
+            success: true,
+            data: applications,
+            pagination: {
+                currentPage: pageNumber,
+                totalPages,
+                totalItems: totalCount,
+                itemsPerPage: limitNumber,
+                hasNextPage: pageNumber < totalPages,
+                hasPreviousPage: pageNumber > 1
+            }
+        });
+    } catch (error: any) {
+        console.error('Error fetching applications:', error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            success: false,
             error: error.message,
         });
     }
@@ -744,6 +837,84 @@ export const deleteApplication = async (req: Request, res: Response) => {
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to delete application",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+export const updateApplicationStatus = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                success: false,
+                message: "Status is required"
+            });
+        }
+
+        // Check if application exists
+        const application = await prisma.application.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!application) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                success: false,
+                message: "Application not found"
+            });
+        }
+
+        // Find the status ID by status name
+        const statusRecord = await prisma.applicationStatus.findFirst({
+            where: {
+                status: {
+                    equals: status.toUpperCase(),
+                    mode: 'insensitive'
+                }
+            }
+        });
+
+        if (!statusRecord) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                success: false,
+                message: `Invalid status: ${status}. Status not found.`
+            });
+        }
+
+        // Update application status
+        const updatedApplication = await prisma.application.update({
+            where: { id: parseInt(id) },
+            data: {
+                applicationStatusId: statusRecord.id,
+                updatedAt: new Date()
+            },
+            include: {
+                applicationStatus: {
+                    select: {
+                        id: true,
+                        status: true,
+                        description: true
+                    }
+                }
+            }
+        });
+
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            message: "Application status updated successfully",
+            data: {
+                id: updatedApplication.id,
+                applicationRef: updatedApplication.applicationRef,
+                status: updatedApplication.applicationStatus
+            }
+        });
+    } catch (error: any) {
+        console.error('Error updating application status:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Failed to update application status",
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

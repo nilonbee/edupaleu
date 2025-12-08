@@ -30,3 +30,33 @@ body,
     grid-template-rows: repeat(8, 7.5vh);
   }
 }
+
+/* Custom Scrollbar Styles - Theme Gradient */
+.scrollbar-theme::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-track {
+  background: rgb(30 41 59 / 0.5);
+  border-radius: 4px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb {
+  background: rgb(34 211 238 / 0.3);
+  border-radius: 4px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb:hover {
+  background: rgb(34 211 238 / 0.5);
+}
+
+.scrollbar-theme::-webkit-scrollbar-corner {
+  background: rgb(30 41 59 / 0.5);
+}
+
+/* Firefox scrollbar */
+.scrollbar-theme {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(34 211 238 / 0.3) rgb(30 41 59 / 0.5);
+}

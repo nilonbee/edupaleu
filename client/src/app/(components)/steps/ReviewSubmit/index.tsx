@@ -52,6 +52,7 @@ export const ReviewSubmit: React.FC = () => {
   };
 
   // Group documents by type for better display
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const groupedDocuments = useMemo(() => {
     return documents.reduce((acc, doc) => {
       const typeName = documentTypeNames[doc.documentType] || doc.documentType;
@@ -61,7 +62,7 @@ export const ReviewSubmit: React.FC = () => {
       acc[typeName].push(doc);
       return acc;
     }, {} as Record<string, typeof documents>);
-  }, [documents]);
+  }, [documents, documentTypeNames]);
 
   // Check for missing required fields
   const missingFields = [];

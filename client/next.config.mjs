@@ -31,6 +31,23 @@ const nextConfig = {
       },
     ];
   },
+
+  // Fix for webpack chunk resolution issues
+  webpack: (config, { isServer }) => {
+    // Ensure proper chunk resolution
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+    return config;
+  },
+
+  // Experimental: Improve build stability
+  experimental: {
+    optimizePackageImports: ["@mui/material", "@mui/icons-material"],
+  },
 };
 
 export default nextConfig;

@@ -68,6 +68,31 @@ const config: Config = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
         "gradient-primary": "linear-gradient(to bottom right, var(--tw-gradient-stops))",
         "gradient-card": "linear-gradient(135deg, var(--tw-gradient-stops))",
+        // Global theme gradients from Sidebar
+        "gradient-theme": "linear-gradient(to bottom, rgb(15 23 42), rgb(30 41 59), rgb(30 27 75))",
+        "gradient-theme-horizontal": "linear-gradient(to right, rgb(6 182 212 / 0.2), rgb(37 99 235 / 0.2))",
+        "gradient-theme-button": "linear-gradient(to right, rgb(6 182 212), rgb(37 99 235))",
+        "gradient-theme-button-hover": "linear-gradient(to right, rgb(8 145 178), rgb(29 78 216))",
+      },
+      colors: {
+        // Theme colors from Sidebar
+        "theme-cyan": {
+          DEFAULT: "rgb(6 182 212)",
+          100: "rgb(207 250 254)",
+          200: "rgb(165 243 252)",
+          300: "rgb(103 232 249)",
+          400: "rgb(34 211 238)",
+          500: "rgb(6 182 212)",
+          600: "rgb(8 145 178)",
+          700: "rgb(14 116 144)",
+        },
+        "theme-blue": {
+          DEFAULT: "rgb(37 99 235)",
+          400: "rgb(96 165 250)",
+          500: "rgb(59 130 246)",
+          600: "rgb(37 99 235)",
+          700: "rgb(29 78 216)",
+        },
       },
     },
   },

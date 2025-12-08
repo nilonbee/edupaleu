@@ -12,7 +12,7 @@ interface StepperProps {
 
 const StepperComponent: React.FC<StepperProps> = ({ steps, currentStep, completedSteps }) => {
   return (
-    <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700 p-4 sm:p-6 mb-6">
+    <div className="bg-gradient-to-br from-white via-slate-50/50 to-blue-50/40 dark:from-slate-800 dark:via-slate-800/90 dark:to-indigo-900/30 rounded-xl shadow-xl border border-slate-200/60 dark:border-slate-700/50 p-4 sm:p-6 mb-6">
       {/* Desktop Horizontal Layout */}
       <div className="hidden md:block w-full">
         <div className="flex items-center justify-between">
@@ -25,10 +25,10 @@ const StepperComponent: React.FC<StepperProps> = ({ steps, currentStep, complete
                   disabled
                   className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all duration-300 ${
                     index === currentStep
-                      ? 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-500 text-white shadow-lg shadow-orange-500/50 scale-110'
+                      ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-700 border-cyan-400 text-white shadow-lg shadow-cyan-500/50 scale-110 ring-2 ring-cyan-400/30'
                       : completedSteps.includes(index)
-                      ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-500 text-white shadow-md'
-                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                      ? 'bg-gradient-to-br from-cyan-500 to-teal-600 border-cyan-400 text-white shadow-md'
+                      : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400'
                   }`}
                   aria-label={`Step ${index + 1}: ${step.title}`}
                   aria-current={index === currentStep ? 'step' : undefined}
@@ -52,10 +52,10 @@ const StepperComponent: React.FC<StepperProps> = ({ steps, currentStep, complete
                 <span
                   className={`mt-3 text-xs sm:text-sm font-medium text-center px-1 ${
                     index === currentStep
-                      ? 'text-orange-600 dark:text-orange-400 font-bold'
+                      ? 'text-blue-600 dark:text-cyan-400 font-bold'
                       : completedSteps.includes(index)
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-gray-500 dark:text-gray-400'
+                      ? 'text-cyan-600 dark:text-cyan-400'
+                      : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   {step.title}
@@ -65,8 +65,8 @@ const StepperComponent: React.FC<StepperProps> = ({ steps, currentStep, complete
                 <div
                   className={`flex-1 h-1 mx-2 rounded-full transition-all duration-300 ${
                     completedSteps.includes(index + 1) || index < currentStep
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                      : 'bg-gray-300 dark:bg-gray-600'
+                      ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500'
+                      : 'bg-slate-300 dark:bg-slate-600'
                   }`}
                 />
               )}
@@ -88,10 +88,10 @@ const StepperComponent: React.FC<StepperProps> = ({ steps, currentStep, complete
                     disabled
                     className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold border-2 transition-all duration-300 flex-shrink-0 ${
                       index === currentStep
-                        ? 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-500 text-white shadow-lg shadow-orange-500/50 scale-110'
+                        ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-700 border-cyan-400 text-white shadow-lg shadow-cyan-500/50 scale-110 ring-2 ring-cyan-400/30'
                         : completedSteps.includes(index)
-                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-500 text-white shadow-md'
-                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                        ? 'bg-gradient-to-br from-cyan-500 to-teal-600 border-cyan-400 text-white shadow-md'
+                        : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400'
                     }`}
                     aria-label={`Step ${index + 1}: ${step.title}`}
                     aria-current={index === currentStep ? 'step' : undefined}
@@ -116,8 +116,8 @@ const StepperComponent: React.FC<StepperProps> = ({ steps, currentStep, complete
                     <div
                       className={`w-0.5 h-8 sm:h-10 my-1 rounded-full transition-all duration-300 ${
                         completedSteps.includes(index + 1) || index < currentStep
-                          ? 'bg-gradient-to-b from-green-500 to-emerald-500'
-                          : 'bg-gray-300 dark:bg-gray-600'
+                          ? 'bg-gradient-to-b from-cyan-500 via-blue-500 to-indigo-500'
+                          : 'bg-slate-300 dark:bg-slate-600'
                       }`}
                     />
                   )}
@@ -126,10 +126,10 @@ const StepperComponent: React.FC<StepperProps> = ({ steps, currentStep, complete
                   <span
                     className={`text-sm sm:text-base font-medium block ${
                       index === currentStep
-                        ? 'text-orange-600 dark:text-orange-400 font-bold'
+                        ? 'text-blue-600 dark:text-cyan-400 font-bold'
                         : completedSteps.includes(index)
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-gray-500 dark:text-gray-400'
+                        ? 'text-cyan-600 dark:text-cyan-400'
+                        : 'text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     {step.title}

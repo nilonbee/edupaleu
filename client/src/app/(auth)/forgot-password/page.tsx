@@ -8,6 +8,7 @@ import { useForgotPasswordMutation } from "@/state/api";
 import { AuthFormWrapper } from "@/app/(components)/AuthFormWrapper";
 import { FormInput } from "@/app/(components)/FormInput";
 import { Alert } from "@/app/(components)/Alert";
+import Button from "@/app/(components)/Button";
 
 interface ForgotPasswordFormData {
   email: string;
@@ -83,14 +84,14 @@ export default function ForgotPassword() {
             Please check your email and follow the instructions.
           </p>
 
-          <Link
+          <Button
+            as="link"
             href="/login"
-            className="inline-flex items-center px-4 py-3 rounded-lg 
-            bg-blue-600 text-white text-sm font-medium 
-            hover:bg-blue-700 transition-colors shadow"
+            variant="gradient"
+            size="md"
           >
             Back to Login
-          </Link>
+          </Button>
         </div>
       </AuthFormWrapper>
     );
@@ -115,24 +116,22 @@ export default function ForgotPassword() {
           autoComplete="email"
         />
 
-        <button
+        <Button
           type="submit"
-          disabled={isLoading}
-          className="w-full flex justify-center py-3 px-4 border border-blue-500 
-            rounded-lg shadow-lg text-sm font-medium text-white bg-blue-600 
-            hover:bg-blue-700 transition-colors disabled:opacity-50 
-            disabled:cursor-not-allowed focus:outline-none 
-            focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          variant="gradient"
+          size="md"
+          isLoading={isLoading}
+          className="w-full"
         >
-          {isLoading ? "Sending..." : "Get Reset Link"}
-        </button>
+          Get Reset Link
+        </Button>
 
         <div className="text-sm text-center">
           <p className="text-gray-600">
             Remember your password?{" "}
             <Link
               href="/login"
-              className="font-medium text-blue-600 hover:text-blue-700"
+              className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               Back to Login
             </Link>

@@ -266,7 +266,7 @@ const EditApplicationPage = () => {
           <p className="text-red-600 mb-4">Invalid application ID</p>
           <Link
             href="/applications"
-            className="px-4 py-2 text-sm font-medium text-white bg-orange-500 border border-orange-600 rounded shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-150"
+            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-700 hover:from-blue-700 hover:via-indigo-700 hover:to-slate-800 border border-blue-500/50 rounded-lg shadow-lg shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 transition-all duration-200"
           >
             Back to Applications
           </Link>
@@ -292,7 +292,7 @@ const EditApplicationPage = () => {
           <p className="text-red-600 mb-4">Error loading application</p>
           <Link
             href="/applications"
-            className="px-4 py-2 text-sm font-medium text-white bg-orange-500 border border-orange-600 rounded shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-150"
+            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-700 hover:from-blue-700 hover:via-indigo-700 hover:to-slate-800 border border-blue-500/50 rounded-lg shadow-lg shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 transition-all duration-200"
           >
             Back to Applications
           </Link>
@@ -306,7 +306,7 @@ const EditApplicationPage = () => {
       <div className="container mx-auto py-4">
         <Link
           href="/applications"
-          className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-150 mx-4 mb-4"
+          className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 mx-4 mb-4"
         >
           ← Back to Applications
         </Link>

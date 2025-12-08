@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useVerifyEmailMutation } from "@/state/api";
 import { AuthFormWrapper } from "@/app/(components)/AuthFormWrapper";
 import { Alert } from "@/app/(components)/Alert";
+import Button from "@/app/(components)/Button";
 
 export default function VerifyEmail() {
   const searchParams = useSearchParams();
@@ -82,19 +83,23 @@ export default function VerifyEmail() {
           <p className="text-white/80 text-sm mb-6">
             Please double check your verification link or request a new one.
           </p>
-          <div className="space-y-3">
-            <Link
+          <div className="space-y-3 flex gap-3 justify-center">
+            <Button
+              as="link"
               href="/login"
-              className="inline-flex items-center px-4 py-2 border border-white/30 rounded-lg text-sm font-medium text-white bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+              variant="gradient"
+              size="md"
             >
               Go to Login
-            </Link>
-            <Link
+            </Button>
+            <Button
+              as="link"
               href="/register"
-              className="inline-flex items-center px-4 py-2 border border-white/30 rounded-lg text-sm font-medium text-white bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors ml-3"
+              variant="secondary"
+              size="md"
             >
               Register Again
-            </Link>
+            </Button>
           </div>
         </div>
       </AuthFormWrapper>
@@ -116,12 +121,14 @@ export default function VerifyEmail() {
           Thank you for verifying your email address. You can now access all
           features of EduPal.
         </p>
-        <Link
+        <Button
+          as="link"
           href="/login"
-          className="inline-flex items-center px-4 py-2 border border-white/30 rounded-lg text-sm font-medium text-white bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+          variant="gradient"
+          size="md"
         >
           Continue to Login
-        </Link>
+        </Button>
       </div>
     </AuthFormWrapper>
   );

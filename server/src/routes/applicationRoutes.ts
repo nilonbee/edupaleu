@@ -4,7 +4,8 @@ import {
     getApplication,
     createApplication,
     updateApplication,
-    deleteApplication
+    deleteApplication,
+    updateApplicationStatus
 } from '../controllers/applicationController';
 import { authenticateUser, authorizePermissions } from '../middleware/authentication';
 
@@ -16,6 +17,7 @@ router
     .get('/:id', authenticateUser, getApplication)
     .post('/', authenticateUser, createApplication)
     .put('/:id', authenticateUser, updateApplication)
+    .patch('/:id/status', authenticateUser, updateApplicationStatus)
     // Only admins can delete applications
     .delete('/:id', authenticateUser, authorizePermissions('admin'), deleteApplication);
 

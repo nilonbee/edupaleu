@@ -71,6 +71,7 @@ export const AcademicQualifications: React.FC = () => {
     if (academicQualifications && academicQualifications.length > 0) {
       setRenderKey((prev) => prev + 1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [academicQualifications, editingIndex]);
 
   const educationLevelOptions = [

@@ -126,7 +126,7 @@ const WizardForm: React.FC<WizardFormProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-4 sm:py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/40 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 py-4 sm:py-8">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8">
         <Stepper
           steps={steps}

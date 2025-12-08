@@ -1,227 +1,503 @@
 "use client";
-import React, { useState, useMemo, memo } from 'react';
-import Link from 'next/link';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  DataGrid,
+  GridColDef,
+  GridPaginationModel,
+  GridSortModel,
+} from '@mui/x-data-grid';
+import {
+  Box,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  InputAdornment,
+  IconButton,
+  Paper,
+  Typography,
+  Button,
+  CircularProgress,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import {
   useGetApplicationsQuery,
   useDeleteApplicationMutation,
+  useUpdateApplicationStatusMutation,
+  GetApplicationsParams,
+  ApplicationsResponse,
 } from '@/state/applicationApi';
-import { Application } from '@/state/api';
+import { Application, ApplicationStatus } from '@/state/api';
+import { useGetApplicationStatusesQuery } from '@/state/api';
 import { showToast } from '@/utils/toast';
-import { TableSkeleton } from '@/app/(components)/LoadingSkeleton';
+import { ActionsMenu } from './ActionsMenu';
+import { StatusChangeModal } from './StatusChangeModal';
 
 interface ApplicationsTableProps {
   onEdit?: (id: number) => void;
 }
 
+interface StatusChangeModalState {
+  open: boolean;
+  applicationId: number | null;
+  applicationRef: string;
+  currentStatus?: string;
+}
+
 export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({ onEdit }) => {
   const router = useRouter();
-  const { data: applications = [], isLoading, error } = useGetApplicationsQuery();
+
+  // Filter and search state
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
+  const [sortModel, setSortModel] = useState<GridSortModel>([
+    { field: 'updatedAt', sort: 'desc' },
+  ]);
+
+  // Status change modal state
+  const [statusModal, setStatusModal] = useState<StatusChangeModalState>({
+    open: false,
+    applicationId: null,
+    applicationRef: '',
+    currentStatus: undefined,
+  });
+
+  // Build query parameters
+  const queryParams: GetApplicationsParams = useMemo(() => {
+    const params: GetApplicationsParams = {
+      page: paginationModel.page + 1, // Backend uses 1-based pagination
+      limit: paginationModel.pageSize,
+    };
+
+    if (searchTerm.trim()) {
+      params.search = searchTerm.trim();
+    }
+
+    if (statusFilter) {
+      params.status = statusFilter;
+    }
+
+    if (sortModel.length > 0) {
+      const sort = sortModel[0];
+      params.sort_by = sort.field;
+      params.order = sort.sort === 'asc' ? 'asc' : 'desc';
+    }
+
+    return params;
+  }, [searchTerm, statusFilter, paginationModel, sortModel]);
+
+  // API queries
+  const {
+    data: applicationsResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useGetApplicationsQuery(queryParams);
+
+  const { data: availableStatuses = [] } = useGetApplicationStatusesQuery();
+
   const [deleteApplication, { isLoading: isDeleting }] = useDeleteApplicationMutation();
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateApplicationStatusMutation();
 
-  const handleDelete = async (id: number, applicationRef: string) => {
-    if (!confirm(`Are you sure you want to delete application ${applicationRef}? This action cannot be undone.`)) {
-      return;
+  // Extract applications and pagination from response
+  const applications = useMemo(() => {
+    if (!applicationsResponse) return [];
+    
+    // Handle both old array format and new response format
+    if (Array.isArray(applicationsResponse)) {
+      return applicationsResponse;
     }
-
-    setDeletingId(id);
-    try {
-      await deleteApplication(id).unwrap();
-      showToast.success('Application deleted successfully');
-      // Success - the query will automatically refetch due to cache invalidation
-    } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Failed to delete application. Please try again.';
-      showToast.error(errorMessage);
-    } finally {
-      setDeletingId(null);
+    
+    if ('data' in applicationsResponse) {
+      return applicationsResponse.data || [];
     }
-  };
+    
+    return [];
+  }, [applicationsResponse]);
 
-  const handleEdit = (id: number) => {
+  const pagination = useMemo(() => {
+    if (!applicationsResponse || Array.isArray(applicationsResponse)) {
+      return null;
+    }
+    return 'pagination' in applicationsResponse ? applicationsResponse.pagination : null;
+  }, [applicationsResponse]);
+
+  // Status color helper
+  const getStatusColor = useCallback((status?: string) => {
+    if (!status) return 'default';
+    
+    const statusUpper = status.toUpperCase();
+    if (statusUpper === 'SUBMITTED' || statusUpper === 'APPROVED' || statusUpper === 'ACCEPTED') {
+      return 'success';
+    }
+    if (statusUpper === 'PENDING' || statusUpper === 'IN_REVIEW' || statusUpper === 'UNDER_REVIEW') {
+      return 'warning';
+    }
+    if (statusUpper === 'REJECTED' || statusUpper === 'VISA_REJECTED') {
+      return 'error';
+    }
+    if (statusUpper === 'DRAFT') {
+      return 'default';
+    }
+    return 'info';
+  }, []);
+
+  // Handlers
+  const handleView = useCallback((id: number) => {
+    router.push(`/applications/${id}`);
+  }, [router]);
+
+  const handleEdit = useCallback((id: number) => {
     if (onEdit) {
       onEdit(id);
     } else {
       router.push(`/applications/${id}/edit`);
     }
-  };
+  }, [router, onEdit]);
 
-  const getStatusColor = useMemo(() => {
-    return (status?: string) => {
-      switch (status?.toUpperCase()) {
-        case 'SUBMITTED':
-        case 'APPROVED':
-          return 'bg-green-100 text-green-800';
-        case 'PENDING':
-        case 'IN_REVIEW':
-          return 'bg-yellow-100 text-yellow-800';
-        case 'REJECTED':
-          return 'bg-red-100 text-red-800';
-        case 'DRAFT':
-          return 'bg-gray-100 text-gray-800';
-        default:
-          return 'bg-gray-100 text-gray-800';
-      }
-    };
+  const handleDelete = useCallback(async (id: number, applicationRef: string) => {
+    if (!confirm(`Are you sure you want to delete application ${applicationRef}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteApplication(id).unwrap();
+      showToast.success('Application deleted successfully');
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete application. Please try again.';
+      showToast.error(errorMessage);
+    }
+  }, [deleteApplication]);
+
+  const handleChangeStatusClick = useCallback((id: number, applicationRef: string, currentStatus?: string) => {
+    setStatusModal({
+      open: true,
+      applicationId: id,
+      applicationRef,
+      currentStatus,
+    });
   }, []);
 
-  if (isLoading) {
-    return <TableSkeleton />;
-  }
+  const handleStatusChange = useCallback(async (applicationId: number, newStatus: string) => {
+    try {
+      await updateStatus({ applicationId, status: newStatus }).unwrap();
+      showToast.success('Application status updated successfully');
+      setStatusModal({ open: false, applicationId: null, applicationRef: '' });
+      refetch();
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Failed to update status. Please try again.';
+      showToast.error(errorMessage);
+      throw error; // Re-throw to let modal handle it
+    }
+  }, [updateStatus, refetch]);
 
-  if (error) {
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm('');
+  }, []);
+
+  const handleClearStatusFilter = useCallback(() => {
+    setStatusFilter('');
+  }, []);
+
+  // Debounced search - we'll use immediate search with backend filtering
+  const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+    setPaginationModel((prev) => ({ ...prev, page: 0 })); // Reset to first page on search
+  }, []);
+
+  // Column definitions
+  const columns: GridColDef[] = useMemo(() => [
+    {
+      field: 'applicationRef',
+      headerName: 'Application Ref',
+      width: 150,
+      flex: 0,
+      renderCell: (params) => (
+        <Typography variant="body2" className="font-medium">
+          {params.value || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'studentName',
+      headerName: 'Student Name',
+      width: 200,
+      flex: 1,
+      valueGetter: (value, row: Application) => {
+        if (row.student) {
+          return `${row.student.firstName || ''} ${row.student.lastName || ''}`.trim();
+        }
+        return 'N/A';
+      },
+    },
+    {
+      field: 'university',
+      headerName: 'University',
+      width: 200,
+      flex: 1,
+      valueGetter: (value, row: Application) => {
+        return row.university?.name || 'N/A';
+      },
+    },
+    {
+      field: 'intendedProgram',
+      headerName: 'Program',
+      width: 250,
+      flex: 1,
+      valueGetter: (value, row: Application) => {
+        return row.intendedProgram || 'N/A';
+      },
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 150,
+      flex: 0,
+      valueGetter: (value, row: Application) => {
+        return row.applicationStatus?.status || 'DRAFT';
+      },
+      renderCell: (params) => {
+        const status = params.value as string;
+        const formattedStatus = status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+        return (
+          <Chip
+            label={formattedStatus}
+            color={getStatusColor(status)}
+            size="small"
+            variant="outlined"
+          />
+        );
+      },
+    },
+    {
+      field: 'submissionDate',
+      headerName: 'Submission Date',
+      width: 150,
+      flex: 0,
+      valueGetter: (value, row: Application) => {
+        if (!row.submissionDate) return 'Not submitted';
+        return new Date(row.submissionDate).toLocaleDateString();
+      },
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 80,
+      flex: 0,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        const application = params.row as Application;
+        return (
+          <ActionsMenu
+            applicationId={application.id}
+            onView={() => handleView(application.id)}
+            onEdit={() => handleEdit(application.id)}
+            onDelete={() => handleDelete(application.id, application.applicationRef)}
+            onChangeStatus={() =>
+              handleChangeStatusClick(
+                application.id,
+                application.applicationRef,
+                application.applicationStatus?.status
+              )
+            }
+          />
+        );
+      },
+    },
+  ], [handleView, handleEdit, handleDelete, handleChangeStatusClick, getStatusColor]);
+
+  // Loading state
+  if (isLoading && !applications.length) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center py-12">
-          <p className="text-red-600 mb-4">Error loading applications</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 text-sm font-medium text-white bg-orange-500 border border-orange-600 rounded shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-150"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
+      <Paper className="p-6">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
+          <CircularProgress />
+        </Box>
+      </Paper>
     );
   }
 
-  if (applications.length === 0) {
+  // Error state
+  if (error) {
     return (
-      <div className="bg-white rounded-lg shadow p-12 text-center">
-        <svg
-          className="w-16 h-16 text-gray-400 mx-auto mb-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          No applications yet
-        </h3>
-        <p className="text-gray-500 mb-4">
-          Get started by creating your first application.
-        </p>
-        <Link
-          href="/applications/new"
-          className="px-4 py-2 text-sm font-medium text-white bg-orange-500 border border-orange-600 rounded shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-150 inline-flex items-center"
-        >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <Paper className="p-6">
+        <Box textAlign="center" py={8}>
+          <Typography variant="h6" color="error" gutterBottom>
+            Error loading applications
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {error && 'data' in error ? String(error.data) : 'An unexpected error occurred'}
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={() => refetch()}
+            className="mt-4"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Start New Application
-        </Link>
-      </div>
+            Retry
+          </Button>
+        </Box>
+      </Paper>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-900">Your Applications</h2>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Application Ref
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Student Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                University
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Program
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Submission Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {applications.map((app: Application) => (
-              <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {app.applicationRef}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {app.student
-                    ? `${app.student.firstName} ${app.student.lastName}`
-                    : 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {app.university?.name || 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {app.intendedProgram || 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                      app.applicationStatus?.status
-                    )}`}
+    <Paper className="shadow-sm">
+      {/* Header with Filters */}
+      <Box className="p-4 border-b border-gray-200">
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h6" className="font-semibold">
+            Applications
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => refetch()}
+            size="small"
+          >
+            Refresh
+          </Button>
+        </Box>
+
+        {/* Search and Filter Controls */}
+        <Box display="flex" gap={2} flexWrap="wrap">
+          {/* Global Search */}
+          <TextField
+            placeholder="Search applications..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            size="small"
+            className="flex-1 min-w-[250px]"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon className="text-gray-400" />
+                </InputAdornment>
+              ),
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={handleClearSearch}
+                    edge="end"
                   >
-                    {app.applicationStatus?.status || 'DRAFT'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {app.submissionDate
-                    ? new Date(app.submissionDate).toLocaleDateString()
-                    : 'Not submitted'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex items-center space-x-4">
-                    <Link
-                      href={`/applications/${app.id}`}
-                      className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
-                    >
-                      View
-                    </Link>
-                    <button
-                      onClick={() => handleEdit(app.id)}
-                      className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(app.id, app.applicationRef)}
-                      disabled={deletingId === app.id || isDeleting}
-                      className="text-red-600 hover:text-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {deletingId === app.id ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          {/* Status Filter */}
+          <FormControl size="small" className="min-w-[200px]">
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status"
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPaginationModel((prev) => ({ ...prev, page: 0 }));
+              }}
+              endAdornment={
+                statusFilter && (
+                  <IconButton
+                    size="small"
+                    onClick={handleClearStatusFilter}
+                    edge="end"
+                    className="mr-2"
+                  >
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                )
+              }
+            >
+              <MenuItem value="">
+                <em>All Statuses</em>
+              </MenuItem>
+              {availableStatuses.map((status: ApplicationStatus) => (
+                <MenuItem key={status.id} value={status.status}>
+                  {status.status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      </Box>
+
+      {/* DataGrid */}
+      <Box>
+        <DataGrid
+          rows={applications}
+          columns={columns}
+          getRowId={(row) => row.id}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          sortModel={sortModel}
+          onSortModelChange={setSortModel}
+          pageSizeOptions={[10, 25, 50, 100]}
+          loading={isLoading}
+          disableRowSelectionOnClick
+          className="border-0"
+          sx={{
+            '& .MuiDataGrid-cell:focus': {
+              outline: 'none',
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            },
+          }}
+          rowCount={pagination?.totalItems || applications.length}
+          paginationMode={pagination ? 'server' : 'client'}
+          sortingMode="server"
+        />
+      </Box>
+
+      {/* Empty State */}
+      {!isLoading && applications.length === 0 && (
+        <Box className="p-12 text-center">
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No applications found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {searchTerm || statusFilter
+              ? 'Try adjusting your search or filter criteria.'
+              : 'Get started by creating your first application.'}
+          </Typography>
+          {!searchTerm && !statusFilter && (
+            <Link href="/applications/new">
+              <Button variant="contained" className="mt-4">
+                Start New Application
+              </Button>
+            </Link>
+          )}
+        </Box>
+      )}
+
+      {/* Status Change Modal */}
+      {statusModal.applicationId && (
+        <StatusChangeModal
+          open={statusModal.open}
+          onClose={() => setStatusModal({ open: false, applicationId: null, applicationRef: '' })}
+          applicationId={statusModal.applicationId}
+          applicationRef={statusModal.applicationRef}
+          currentStatus={statusModal.currentStatus}
+          availableStatuses={availableStatuses}
+          onStatusChange={handleStatusChange}
+        />
+      )}
+    </Paper>
   );
 };
-

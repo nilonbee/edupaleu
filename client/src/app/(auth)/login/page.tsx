@@ -11,6 +11,7 @@ import { setUser, clearUser } from "@/state/authSlice";
 import { AuthFormWrapper } from "@/app/(components)/AuthFormWrapper";
 import { FormInput } from "@/app/(components)/FormInput";
 import { Alert } from "@/app/(components)/Alert";
+import Button from "@/app/(components)/Button";
 
 interface LoginFormData {
   email: string;
@@ -132,28 +133,23 @@ export default function Login() {
         </div>
 
         <div>
-          <button
+          <Button
             type="submit"
-            disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-blue-500 rounded-lg shadow-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            variant="gradient"
+            size="md"
+            isLoading={isLoading}
+            className="w-full"
           >
-            {isLoading ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Signing in...
-              </div>
-            ) : (
-              "Sign in"
-            )}
-          </button>
+            Sign in
+          </Button>
         </div>
 
         <div className="text-sm text-center space-y-3">
           <p className="text-gray-600">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/register"
-              className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               Create one here
             </Link>
@@ -162,7 +158,7 @@ export default function Login() {
             Forgot your password?{" "}
             <Link
               href="/forgot-password"
-              className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               Reset it
             </Link>
