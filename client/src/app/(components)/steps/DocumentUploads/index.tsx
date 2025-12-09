@@ -16,15 +16,14 @@ export const DocumentsUpload: React.FC = () => {
 
   const documentTypes = [
     { value: "OL_CERTIFICATE", label: "OL Certificate", required: true },
-    { value: "AL_CERTIFICATE", label: "AL Certificate", required: true },
+    { value: "AL_CERTIFICATE", label: "AL Certificate" },
     {
       value: "BACHELORS_CERTIFICATE",
       label: "Bachelors Certificate",
-      required: true,
     },
     { value: "PASSPORT", label: "Passport Copy", required: true },
-    { value: "PHOTOGRAPH", label: "Photograph", required: true },
-    { value: "CV", label: "Curriculum Vitae", required: true },
+    { value: "PHOTOGRAPH", label: "Photograph" },
+    { value: "CV", label: "Curriculum Vitae" },
   ];
 
   // Store file in sessionStorage and return a reference ID
@@ -229,7 +228,11 @@ export const DocumentsUpload: React.FC = () => {
                     hasFile ? "text-green-600" : "text-gray-600"
                   }`}
                 >
-                  {hasFile ? "✅ Ready" : "📄 Required"}
+                  {hasFile
+                    ? "✅ Ready"
+                    : docType.required
+                    ? "📄 Required"
+                    : "📄 Optional"}
                 </span>
               </div>
 
@@ -337,17 +340,6 @@ export const DocumentsUpload: React.FC = () => {
             </div>
           );
         })}
-      </div>
-
-      {/* Simple Instructions */}
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm">
-        <p className="font-medium text-gray-700 mb-2">📌 How it works:</p>
-        <ol className="list-decimal list-inside space-y-1 text-gray-600">
-          <li>Select files - they&apos;re stored in your browser session</li>
-          <li>Complete all steps of the application</li>
-          <li>Files will be uploaded to cloud storage when you submit</li>
-          <li>Files will be cleared when you close the browser</li>
-        </ol>
       </div>
     </div>
   );

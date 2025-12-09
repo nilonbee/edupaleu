@@ -22,6 +22,8 @@ interface ApplicationState {
     marriageCertificate?: LocalApplicationDocument;
     intendedPrograms: IntendedProgram[];
     completedSteps: number[];
+    fromEnquiry?: boolean; // Track if application is being created from an enquiry
+    enquiryId?: number; // Store enquiry ID if applicable
 }
 
 const initialState: ApplicationState = {
@@ -34,6 +36,8 @@ const initialState: ApplicationState = {
     marriageCertificate: undefined,
     intendedPrograms: [],
     completedSteps: [],
+    fromEnquiry: false,
+    enquiryId: undefined,
 };
 
 
@@ -147,6 +151,11 @@ const applicationSlice = createSlice({
             return initialState;
         },
 
+        setFromEnquiry: (state, action: PayloadAction<{ fromEnquiry: boolean; enquiryId?: number }>) => {
+            state.fromEnquiry = action.payload.fromEnquiry;
+            state.enquiryId = action.payload.enquiryId;
+        },
+
         // In your applicationSlice.ts
         setDocumentS3Url: (state, action: PayloadAction<{ documentType: string; s3Url: string }>) => {
             const { documentType, s3Url } = action.payload;
@@ -177,6 +186,23 @@ const applicationSlice = createSlice({
 
         removeIntendedProgram: (state, action: PayloadAction<number>) => {
             state.intendedPrograms.splice(action.payload, 1);
+            // Recalculate priorities after removal
+            state.intendedPrograms.forEach((program, index) => {
+                program.priority = index + 1;
+            });
+        },
+
+        reorderIntendedPrograms: (state, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
+            const { oldIndex, newIndex } = action.payload;
+            const programs = [...state.intendedPrograms];
+            const [movedProgram] = programs.splice(oldIndex, 1);
+            programs.splice(newIndex, 0, movedProgram);
+
+            // Recalculate priorities based on new order
+            state.intendedPrograms = programs.map((program, index) => ({
+                ...program,
+                priority: index + 1,
+            }));
         },
 
         completeStep: (state, action: PayloadAction<number>) => {
@@ -187,21 +213,27 @@ const applicationSlice = createSlice({
 
         loadApplicationData: (state, action: PayloadAction<{
             student: Student;
-            university: University;
-            academicQualifications: AcademicQualification[];
-            documents: LocalApplicationDocument[];
-            maritalStatus: ApplicationState['maritalStatus'];
+            university?: University;
+            academicQualifications?: AcademicQualification[];
+            documents?: LocalApplicationDocument[];
+            maritalStatus?: ApplicationState['maritalStatus'];
             marriageCertificate?: LocalApplicationDocument;
-            intendedPrograms: IntendedProgram[];
+            intendedPrograms?: IntendedProgram[];
+            fromEnquiry?: boolean;
+            enquiryId?: number;
         }>) => {
             state.student = action.payload.student;
-            state.selectedUniversity = action.payload.university;
-            state.academicQualifications = action.payload.academicQualifications;
-            state.documents = action.payload.documents;
-            state.maritalStatus = action.payload.maritalStatus;
-            state.marriageCertificate = action.payload.marriageCertificate;
-            state.intendedPrograms = action.payload.intendedPrograms;
-            state.completedSteps = Array.from({ length: 8 }, (_, i) => i);
+            if (action.payload.university) state.selectedUniversity = action.payload.university;
+            if (action.payload.academicQualifications) state.academicQualifications = action.payload.academicQualifications;
+            if (action.payload.documents) state.documents = action.payload.documents;
+            if (action.payload.maritalStatus) state.maritalStatus = action.payload.maritalStatus;
+            if (action.payload.marriageCertificate !== undefined) state.marriageCertificate = action.payload.marriageCertificate;
+            if (action.payload.intendedPrograms) state.intendedPrograms = action.payload.intendedPrograms;
+            if (action.payload.fromEnquiry !== undefined) state.fromEnquiry = action.payload.fromEnquiry;
+            if (action.payload.enquiryId !== undefined) state.enquiryId = action.payload.enquiryId;
+            if (action.payload.university) {
+                state.completedSteps = Array.from({ length: 8 }, (_, i) => i);
+            }
         },
 
     },
@@ -221,10 +253,12 @@ export const {
     addIntendedProgram,
     updateIntendedProgram,
     removeIntendedProgram,
+    reorderIntendedPrograms,
     completeStep,
     resetApplication,
     setDocumentS3Url,
     loadApplicationData,
+    setFromEnquiry,
 } = applicationSlice.actions;
 
 // Selectors

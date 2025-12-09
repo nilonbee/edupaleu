@@ -135,7 +135,7 @@ export default function Login() {
         <div>
           <Button
             type="submit"
-            variant="gradient"
+            variant="primary"
             size="md"
             isLoading={isLoading}
             className="w-full"

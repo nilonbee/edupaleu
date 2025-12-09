@@ -118,7 +118,7 @@ export default function Register() {
           <div>
             <Button
               type="submit"
-              variant="gradient"
+              variant="primary"
               size="md"
               isLoading={isLoading}
               className="w-full"
@@ -151,7 +151,7 @@ export default function Register() {
           <Button
             as="link"
             href="/login"
-            variant="gradient"
+            variant="primary"
             size="md"
           >
             Go to Login

@@ -91,7 +91,7 @@ export default function ResetPassword() {
 
           <Button
             onClick={() => router.push("/login")}
-            variant="gradient"
+            variant="primary"
             size="md"
           >
             Go to Login Now
@@ -122,7 +122,7 @@ export default function ResetPassword() {
 
         <Button
           type="submit"
-          variant="gradient"
+          variant="primary"
           size="md"
           isLoading={isLoading}
           className="w-full"

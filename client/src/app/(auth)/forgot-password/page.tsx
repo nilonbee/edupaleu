@@ -87,7 +87,7 @@ export default function ForgotPassword() {
           <Button
             as="link"
             href="/login"
-            variant="gradient"
+            variant="primary"
             size="md"
           >
             Back to Login
@@ -118,7 +118,7 @@ export default function ForgotPassword() {
 
         <Button
           type="submit"
-          variant="gradient"
+          variant="primary"
           size="md"
           isLoading={isLoading}
           className="w-full"

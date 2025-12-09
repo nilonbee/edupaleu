@@ -56,11 +56,12 @@ export interface IntendedProgram {
     country: string;
     programme: string;
     university: string;
+    priority?: number; // Priority (1 = highest, 4 = lowest)
 }
 
 export interface CreateApplicationRequest {
     student: Student;
-    university: University;
+    university?: University; // Optional - university info is in intended programs
     academicQualifications: AcademicQualification[];
     documents: ApplicationDocument[];
     maritalStatus: 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';

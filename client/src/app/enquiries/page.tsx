@@ -1,61 +1,58 @@
 "use client";
+import React, { useState } from "react";
+import { EnquiriesTable } from "@/app/(components)/EnquiriesTable";
+import { CreateEnquiryModal } from "@/app/(components)/EnquiriesTable/CreateEnquiryModal";
+import { EditEnquiryModal } from "@/app/(components)/EnquiriesTable/EditEnquiryModal";
+import { useAppSelector } from "@/app/redux";
 
-import { useGetProductsQuery } from "@/state/api";
-import Header from "@/app/(components)/Header";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+const EnquiriesPage = () => {
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingEnquiryId, setEditingEnquiryId] = useState<number | null>(null);
 
-const columns: GridColDef[] = [
-  { field: "productId", headerName: "ID", width: 90 },
-  { field: "name", headerName: "Product Name", width: 200 },
-  {
-    field: "price",
-    headerName: "Price",
-    width: 110,
-    type: "number",
-    valueGetter: (value, row) => `$${row.price}`,
-  },
-  {
-    field: "rating",
-    headerName: "Rating",
-    width: 110,
-    type: "number",
-    valueGetter: (value, row) => (row.rating ? row.rating : "N/A"),
-  },
-  {
-    field: "stockQuantity",
-    headerName: "Stock Quantity",
-    width: 150,
-    type: "number",
-  },
-];
+  const handleCreate = () => {
+    setIsCreateModalOpen(true);
+  };
 
-const Inventory = () => {
-  const { data: products, isError, isLoading } = useGetProductsQuery();
+  const handleEdit = (id: number) => {
+    setEditingEnquiryId(id);
+  };
 
-  if (isLoading) {
-    return <div className="py-4">Loading...</div>;
-  }
+  const handleCloseCreate = () => {
+    setIsCreateModalOpen(false);
+  };
 
-  if (isError || !products) {
-    return (
-      <div className="text-center text-red-500 py-4">
-        Failed to fetch products
-      </div>
-    );
-  }
+  const handleCloseEdit = () => {
+    setEditingEnquiryId(null);
+  };
 
   return (
-    <div className="flex flex-col">
-      <Header name="Enquiries" />
-      <DataGrid
-        rows={products}
-        columns={columns}
-        getRowId={(row) => row.productId}
-        checkboxSelection
-        className="bg-white shadow rounded-lg border border-gray-200 mt-5 !text-gray-700"
-      />
-    </div>
+    <>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Enquiries</h1>
+        <p className="text-gray-600 mt-1">
+          Manage enquiries and convert them to applications
+        </p>
+      </div>
+
+      <EnquiriesTable onCreate={handleCreate} onEdit={handleEdit} />
+
+      {isCreateModalOpen && (
+        <CreateEnquiryModal
+          open={isCreateModalOpen}
+          onClose={handleCloseCreate}
+        />
+      )}
+
+      {editingEnquiryId && (
+        <EditEnquiryModal
+          open={!!editingEnquiryId}
+          enquiryId={editingEnquiryId}
+          onClose={handleCloseEdit}
+        />
+      )}
+    </>
   );
 };
 
-export default Inventory;
+export default EnquiriesPage;

@@ -3,16 +3,17 @@
 import React, { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { useAppSelector } from "@/app/redux";
-import { useCreateApplicationMutation, useUpdateApplicationMutation } from "@/state/applicationApi";
+import {
+  useCreateApplicationMutation,
+  useUpdateApplicationMutation,
+} from "@/state/applicationApi";
 import { useApplicationForm } from "@/hooks/useApplicationForm";
 import { useApplicationSubmission } from "@/hooks/useApplicationSubmission";
 import { logger } from "@/utils/logger";
 
 // Import steps
 import {
-  StudentSelection,
   StudentDetails,
-  UniversitySelection,
   AcademicQualifications,
   DocumentsUpload,
   MaritalStatus,
@@ -32,9 +33,7 @@ interface WizardFormProps {
 }
 
 const steps = [
-  { title: "Student", component: StudentSelection },
   { title: "Details", component: StudentDetails },
-  { title: "University", component: UniversitySelection },
   { title: "Academic", component: AcademicQualifications },
   { title: "Documents", component: DocumentsUpload },
   { title: "Marital", component: MaritalStatus },
@@ -46,38 +45,34 @@ const WizardForm: React.FC<WizardFormProps> = ({
   applicationId,
   onComplete,
 }) => {
-  const mode = applicationId ? 'edit' : 'create';
+  const mode = applicationId ? "edit" : "create";
   const { completedSteps } = useAppSelector((state) => state.application);
-  
+
   const [createApplication, { isLoading: isCreating, isSuccess, error }] =
     useCreateApplicationMutation();
   const [updateApplication, { isLoading: isUpdating }] =
     useUpdateApplicationMutation();
 
-  const {
-    methods,
-    safeCurrentStep,
-    handleNext,
-    handleBack,
-    formState,
-  } = useApplicationForm(mode);
+  const { methods, safeCurrentStep, handleNext, handleBack, formState } =
+    useApplicationForm(mode);
 
-  const { isSubmitting, submitApplication, canSubmit } = useApplicationSubmission({
-    mode,
-    applicationId,
-    onSubmitSuccess: (result) => {
-      if (onComplete) {
-        onComplete();
-      }
-    },
-    onSubmitError: (error) => {
-      logger.error('Submission error:', error);
-    },
-  });
+  const { isSubmitting, submitApplication, canSubmit } =
+    useApplicationSubmission({
+      mode,
+      applicationId,
+      onSubmitSuccess: (result) => {
+        if (onComplete) {
+          onComplete();
+        }
+      },
+      onSubmitError: (error) => {
+        logger.error("Submission error:", error);
+      },
+    });
 
   // Load application data if editing
   useEffect(() => {
-    if (applicationId && mode === 'edit') {
+    if (applicationId && mode === "edit") {
       // Application data loading is handled in the edit page component
       logger.log("Loading application for edit:", applicationId);
     }
@@ -93,7 +88,9 @@ const WizardForm: React.FC<WizardFormProps> = ({
       "Steps:",
       steps
     );
-    return <ErrorView currentStep={safeCurrentStep} totalSteps={steps.length} />;
+    return (
+      <ErrorView currentStep={safeCurrentStep} totalSteps={steps.length} />
+    );
   }
 
   const CurrentStepComponent = currentStepData.component;
@@ -112,7 +109,7 @@ const WizardForm: React.FC<WizardFormProps> = ({
       );
     } catch (error) {
       // Error handling is done in useApplicationSubmission
-      logger.error('Submit error:', error);
+      logger.error("Submit error:", error);
     }
   };
 
@@ -120,13 +117,17 @@ const WizardForm: React.FC<WizardFormProps> = ({
     return (
       <SuccessView
         onComplete={onComplete}
-        message={mode === 'edit' ? 'Application Updated Successfully!' : 'Application Submitted Successfully!'}
+        message={
+          mode === "edit"
+            ? "Application Updated Successfully!"
+            : "Application Submitted Successfully!"
+        }
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/40 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 py-4 sm:py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-8">
         <Stepper
           steps={steps}
@@ -134,7 +135,7 @@ const WizardForm: React.FC<WizardFormProps> = ({
           completedSteps={completedSteps}
         />
 
-        <div className="bg-gradient-to-br from-white via-white to-blue-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-4 sm:p-6 lg:p-8">
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(handleSubmit)}>
               <CurrentStepComponent />

@@ -7,14 +7,14 @@ import { Plus } from "lucide-react";
 
 const ApplicationsPage = () => {
   return (
-    <div className="p-6">
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Applications</h1>
 
         <Button
           as="link"
           href="/applications/new"
-          variant="gradient"
+          variant="primary"
           size="md"
           className="flex items-center"
         >
@@ -24,7 +24,7 @@ const ApplicationsPage = () => {
       </div>
 
       <ApplicationsTable />
-    </div>
+    </>
   );
 };
 

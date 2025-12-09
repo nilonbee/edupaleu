@@ -1,14 +1,12 @@
 // components/steps/ReviewSubmit.tsx
 import { useMemo } from "react";
 import { useAppSelector } from "@/app/redux";
-import { useGetUniversitiesQuery } from "@/state/api";
 
 export const ReviewSubmit: React.FC = () => {
   // Removed submission logic - handled by WizardForm
 
   const {
     student,
-    selectedUniversity,
     academicQualifications,
     documents,
     maritalStatus,
@@ -16,27 +14,22 @@ export const ReviewSubmit: React.FC = () => {
     intendedPrograms,
   } = useAppSelector((state) => state.application);
 
-  const { data: universities } = useGetUniversitiesQuery();
-
-  const selectedUni = useMemo(() => {
-    return universities?.find(
-      (u) => u.id.toString() === selectedUniversity?.id?.toString()
-    );
-  }, [universities, selectedUniversity]);
-
-  const documentTypeNames: { [key: string]: string } = {
-    OL_CERTIFICATE: "OL Certificate",
-    AL_CERTIFICATE: "AL Certificate",
-    BACHELORS_CERTIFICATE: "Bachelors Certificate",
-    MASTERS_CERTIFICATE: "Masters Certificate",
-    LANGUAGE_PROFICIENCY: "Language Proficiency",
-    PASSPORT: "Passport Copy",
-    PHOTOGRAPH: "Photograph",
-    CV: "Curriculum Vitae",
-    RECOMMENDATION_LETTER: "Recommendation Letter",
-    MARRIAGE_CERTIFICATE: "Marriage Certificate",
-    OTHER: "Other Documents",
-  };
+  const documentTypeNames: { [key: string]: string } = useMemo(
+    () => ({
+      OL_CERTIFICATE: "OL Certificate",
+      AL_CERTIFICATE: "AL Certificate",
+      BACHELORS_CERTIFICATE: "Bachelors Certificate",
+      MASTERS_CERTIFICATE: "Masters Certificate",
+      LANGUAGE_PROFICIENCY: "Language Proficiency",
+      PASSPORT: "Passport Copy",
+      PHOTOGRAPH: "Photograph",
+      CV: "Curriculum Vitae",
+      RECOMMENDATION_LETTER: "Recommendation Letter",
+      MARRIAGE_CERTIFICATE: "Marriage Certificate",
+      OTHER: "Other Documents",
+    }),
+    []
+  );
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -52,7 +45,6 @@ export const ReviewSubmit: React.FC = () => {
   };
 
   // Group documents by type for better display
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const groupedDocuments = useMemo(() => {
     return documents.reduce((acc, doc) => {
       const typeName = documentTypeNames[doc.documentType] || doc.documentType;
@@ -67,20 +59,12 @@ export const ReviewSubmit: React.FC = () => {
   // Check for missing required fields
   const missingFields = [];
   if (!student) missingFields.push("Student information");
-  if (!selectedUniversity) missingFields.push("University selection");
   if (academicQualifications.length === 0)
     missingFields.push("Academic qualifications");
   if (intendedPrograms.length === 0) missingFields.push("Intended programs");
 
-  // Check for required documents (based on your documentTypes array)
-  const requiredDocuments = [
-    "OL_CERTIFICATE",
-    "AL_CERTIFICATE",
-    "BACHELORS_CERTIFICATE",
-    "PASSPORT",
-    "PHOTOGRAPH",
-    "CV",
-  ];
+  // Check for required documents - only passport and OL certificate
+  const requiredDocuments = ["OL_CERTIFICATE", "PASSPORT"];
   const missingDocuments = requiredDocuments.filter(
     (docType) => !documents.some((doc) => doc.documentType === docType)
   );
@@ -131,85 +115,125 @@ export const ReviewSubmit: React.FC = () => {
           </h3>
           {student ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div>
-                  <strong className="text-gray-700">Full Name:</strong>
-                  <p>
-                    {student.firstName} {student.lastName}
+                  <strong className="text-gray-700">First Name:</strong>
+                  <p className="text-gray-900">
+                    {student.firstName || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">Last Name:</strong>
+                  <p className="text-gray-900">
+                    {student.lastName || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">Date of Birth:</strong>
+                  <p className="text-gray-900">
+                    {student.dateOfBirth || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">Gender:</strong>
+                  <p className="text-gray-900">
+                    {student.gender || "Not provided"}
                   </p>
                 </div>
                 <div>
                   <strong className="text-gray-700">Email:</strong>
-                  <p>{student.email}</p>
+                  <p className="text-gray-900">
+                    {student.email || "Not provided"}
+                  </p>
                 </div>
                 <div>
                   <strong className="text-gray-700">Phone:</strong>
-                  <p>{student.phone || "Not provided"}</p>
+                  <p className="text-gray-900">
+                    {student.phone || "Not provided"}
+                  </p>
                 </div>
-                <div>
-                  <strong className="text-gray-700">Student ID:</strong>
-                  <p>{student.studentId}</p>
-                </div>
-              </div>
-              <div className="space-y-2">
                 <div>
                   <strong className="text-gray-700">Nationality:</strong>
-                  <p>{student.nationality || "Not provided"}</p>
+                  <p className="text-gray-900">
+                    {student.nationality || "Not provided"}
+                  </p>
                 </div>
+                <div>
+                  <strong className="text-gray-700">Passport Number:</strong>
+                  <p className="text-gray-900">
+                    {student.passportNumber || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">Passport Expiry:</strong>
+                  <p className="text-gray-900">
+                    {student.passportExpiry || "Not provided"}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <strong className="text-gray-700">Student ID:</strong>
+                  <p className="text-gray-900">
+                    {student.studentId || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">Address:</strong>
+                  <p className="text-gray-900">
+                    {student.address || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">City:</strong>
+                  <p className="text-gray-900">
+                    {student.city || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">State:</strong>
+                  <p className="text-gray-900">
+                    {student.state || "Not provided"}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-700">ZIP Code:</strong>
+                  <p className="text-gray-900">
+                    {student.zipCode || "Not provided"}
+                  </p>
+                </div>
+                {student.hasEnglishTest && (
+                  <>
+                    <div>
+                      <strong className="text-gray-700">
+                        English Test Type:
+                      </strong>
+                      <p className="text-gray-900">
+                        {student.englishTestType || "Not provided"}
+                      </p>
+                    </div>
+                    <div>
+                      <strong className="text-gray-700">
+                        English Test Score:
+                      </strong>
+                      <p className="text-gray-900">
+                        {student.englishTestScore || "Not provided"}
+                      </p>
+                    </div>
+                    <div>
+                      <strong className="text-gray-700">
+                        English Test Date:
+                      </strong>
+                      <p className="text-gray-900">
+                        {student.englishTestDate || "Not provided"}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ) : (
             <p className="text-red-600">No student information provided</p>
-          )}
-        </section>
-
-        {/* University Selection */}
-        <section className="border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Selected University
-          </h3>
-          {selectedUni ? (
-            <div className="space-y-2">
-              <div>
-                <strong className="text-gray-700">University:</strong>
-                <p className="font-medium">{selectedUni.name}</p>
-              </div>
-              {selectedUni.country && (
-                <div>
-                  <strong className="text-gray-700">Country:</strong>
-                  <p>
-                    {selectedUni.country?.name ||
-                      selectedUni.country?.code ||
-                      "Not provided"}
-                  </p>
-                </div>
-              )}
-              {selectedUni.ranking && (
-                <div>
-                  <strong className="text-gray-700">Ranking:</strong>
-                  <p>{selectedUni.ranking}</p>
-                </div>
-              )}
-              {selectedUni.website && (
-                <div>
-                  <strong className="text-gray-700">Website:</strong>
-                  <a
-                    href={selectedUni.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    {selectedUni.website}
-                  </a>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-red-600">
-              {selectedUniversity
-                ? "University not found"
-                : "No university selected"}
-            </p>
           )}
         </section>
 
@@ -445,35 +469,6 @@ export const ReviewSubmit: React.FC = () => {
               <div className="text-sm text-gray-600">Status</div>
             </div>
           </div>
-
-          {/* Submission Button */}
-          {/* <div className="mt-6 pt-6 border-t border-gray-300">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-sm text-gray-600">
-                {isFormValid ? (
-                  <p className="text-green-600">
-                    ✅ All required information is complete. You can now submit
-                    your application.
-                  </p>
-                ) : (
-                  <p className="text-red-600">
-                    ⚠️ Please complete all required fields before submitting.
-                  </p>
-                )}
-              </div>
-              <button
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                  isFormValid
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-                disabled={!isFormValid}
-                onClick={handleSubmit}
-              >
-                Submit Application
-              </button>
-            </div>
-          </div> */}
         </section>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "gradient";
+  variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
   children: React.ReactNode;
@@ -34,15 +34,15 @@ const Button = React.forwardRef<
     ref
   ) => {
     const baseClasses =
-      "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+      "inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
     const variantClasses = {
       primary:
-        "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-lg",
+        "bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 focus:ring-primary-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
       secondary:
-        "bg-slate-700 text-slate-100 hover:bg-slate-600 focus:ring-slate-500 shadow-lg border border-slate-600",
-      gradient:
-        "bg-gradient-theme-button text-white hover:bg-gradient-theme-button-hover focus:ring-cyan-400 shadow-lg shadow-cyan-500/20 border border-cyan-400/30",
+        "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 focus:ring-gray-300 dark:focus:ring-gray-600 border border-gray-200 dark:border-gray-700",
+      ghost:
+        "bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 active:bg-gray-200 dark:active:bg-gray-700",
     };
 
     const sizeClasses = {

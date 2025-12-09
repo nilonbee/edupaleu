@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import WizardForm from "@/app/(components)/WizardForm";
+import Button from "@/app/(components)/Button";
 import {
   useGetApplicationQuery,
   ApplicationResponseData,
@@ -264,12 +265,9 @@ const EditApplicationPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
           <p className="text-red-600 mb-4">Invalid application ID</p>
-          <Link
-            href="/applications"
-            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-700 hover:from-blue-700 hover:via-indigo-700 hover:to-slate-800 border border-blue-500/50 rounded-lg shadow-lg shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 transition-all duration-200"
-          >
+          <Button as="link" href="/applications" variant="primary" size="md">
             Back to Applications
-          </Link>
+          </Button>
         </div>
       </div>
     );
@@ -290,12 +288,9 @@ const EditApplicationPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
           <p className="text-red-600 mb-4">Error loading application</p>
-          <Link
-            href="/applications"
-            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-700 hover:from-blue-700 hover:via-indigo-700 hover:to-slate-800 border border-blue-500/50 rounded-lg shadow-lg shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 transition-all duration-200"
-          >
+          <Button as="link" href="/applications" variant="primary" size="md">
             Back to Applications
-          </Link>
+          </Button>
         </div>
       </div>
     );

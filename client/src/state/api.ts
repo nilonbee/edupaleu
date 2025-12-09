@@ -54,6 +54,12 @@ export interface User {
   userId: number;
   name: string;
   role: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  displayPicture?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthUser {
@@ -165,18 +171,18 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
   extraOptions
 ) => {
   const result = await baseQueryWithoutAuth(args, api, extraOptions);
-  
+
   // Handle 401 Unauthorized - clear auth state
   // Note: Actual redirect is handled in DashboardWrapper based on auth state
   if (result.error && 'status' in result.error && result.error.status === 401) {
     // Import dynamically to avoid circular dependencies
     const { clearUser } = await import('./authSlice');
     api.dispatch(clearUser());
-    
+
     // Note: API state reset should be handled at the store level if needed
     // api.util is not available in baseQuery callback
   }
-  
+
   return result;
 };
 

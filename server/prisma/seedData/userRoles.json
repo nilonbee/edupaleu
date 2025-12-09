@@ -1,14 +1,14 @@
 [
   {
     "id": 1,
-    "name": "superAdmin",
-    "description": "Super Administrator with full system access",
+    "name": "admin",
+    "description": "Administrator with full system access",
     "permissions": { "all": true },
     "isActive": true
   },
   {
     "id": 2,
-    "name": "admin",
+    "name": "user",
     "description": "Administrator with management privileges",
     "permissions": {
       "users": ["read", "write", "delete"],
@@ -26,18 +26,6 @@
     "permissions": {
       "students": ["read", "write"],
       "applications": ["read", "write"],
-      "universities": ["read"],
-      "countries": ["read"]
-    },
-    "isActive": true
-  },
-  {
-    "id": 4,
-    "name": "employee",
-    "description": "Employee with limited access",
-    "permissions": {
-      "students": ["read"],
-      "applications": ["read"],
       "universities": ["read"],
       "countries": ["read"]
     },

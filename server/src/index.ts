@@ -16,6 +16,7 @@ import applicationStatusRoutes from './routes/applicationStatusRoutes';
 import studentRoutes from './routes/studentRoutes';
 import seedRoutes from './routes/seedRoutes';
 import fileUploadRoutes from './routes/fileUploadRoutes';
+import enquiryRoutes from './routes/enquiryRoutes';
 
 import { errorHandlerMiddleware } from './middleware/error-handler';
 import { notFoundMiddleware } from './middleware/not-found';
@@ -49,8 +50,8 @@ app.use(bodyParser.json());
 app.use(fileUpload())
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
 }));
 
 // Cookie parser with JWT secret for signed cookies
@@ -67,6 +68,7 @@ app.use('/api/v1/universities', universityRoutes)
 app.use('/api/v1/students', studentRoutes)
 app.use('/api/v1/seed', seedRoutes)
 app.use('/api/v1/file-upload', fileUploadRoutes)
+app.use('/api/v1/enquiries', enquiryRoutes)
 
 
 
@@ -78,5 +80,5 @@ app.use(errorHandlerMiddleware);
 const port = Number(process.env.PORT) || 3001;
 
 app.listen(port, "0.0.0.0", () => {
-    console.log(`Server running on port: ${port}`);
+  console.log(`Server running on port: ${port}`);
 })

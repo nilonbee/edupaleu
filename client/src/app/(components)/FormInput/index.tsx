@@ -9,6 +9,7 @@ interface FormInputProps {
   error?: FieldError;
   required?: boolean;
   autoComplete?: string;
+  validate?: (value: any) => string | boolean | undefined;
 }
 
 export function FormInput({
@@ -20,6 +21,7 @@ export function FormInput({
   error,
   required = false,
   autoComplete,
+  validate,
 }: FormInputProps) {
   return (
     <div>
@@ -34,7 +36,7 @@ export function FormInput({
           error ? "border-red-400" : "border-gray-300"
         }`}
         placeholder={placeholder}
-        {...register(name, { required })}
+        {...register(name, { required, validate })}
       />
       {error && (
         <p className="mt-1 text-sm text-red-600">

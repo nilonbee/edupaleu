@@ -33,31 +33,25 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Get or create default user role
+    // Check if this is the first user (make them admin)
+    const userCount = await prisma.user.count();
+    const roleName = userCount === 0 ? 'admin' : 'user';
+
+    // Get or create the role
     let userRole = await prisma.role.findFirst({
-        where: { name: 'user' },
+        where: { name: roleName },
     });
 
     if (!userRole) {
-        // Check if this is the first user (make them admin)
-        const userCount = await prisma.user.count();
-        const roleName = userCount === 0 ? 'admin' : 'user';
-
-        userRole = await prisma.role.findFirst({
-            where: { name: roleName },
+        // Create the role if it doesn't exist
+        userRole = await prisma.role.create({
+            data: {
+                name: roleName,
+                description: `${roleName} role`,
+                permissions: {},
+                isActive: true,
+            },
         });
-
-        if (!userRole) {
-            // Create the role if it doesn't exist
-            userRole = await prisma.role.create({
-                data: {
-                    name: roleName,
-                    description: `${roleName} role`,
-                    permissions: {},
-                    isActive: true,
-                },
-            });
-        }
     }
 
     const verificationToken = crypto.randomBytes(40).toString('hex');
@@ -122,6 +116,48 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     res.status(StatusCodes.OK).json({ msg: 'Email Verified' });
 };
 
+// Setup password from invite
+export const setupPasswordFromInvite = async (req: Request, res: Response): Promise<void> => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+        throw new BadRequestError('Please provide token and password');
+    }
+
+    const hashedToken = createHash(token);
+
+    const user = await prisma.user.findFirst({
+        where: {
+            inviteToken: hashedToken,
+            inviteTokenExpirationDate: {
+                gte: new Date(),
+            },
+        },
+    });
+
+    if (!user) {
+        throw new UnauthenticatedError('Invalid or expired invite token');
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // Update password and clear invite token
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            passwordHash,
+            inviteToken: null,
+            inviteTokenExpirationDate: null,
+            mustChangePassword: false,
+            isVerified: true, // Auto-verify when setting password from invite
+        },
+    });
+
+    res.status(StatusCodes.OK).json({ msg: 'Password set successfully. You can now login.' });
+};
+
 export const login = async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
 
@@ -148,6 +184,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     if (!user.isVerified) {
         throw new UnauthenticatedError('Please verify your email');
+    }
+
+    if (!user.isActive) {
+        throw new UnauthenticatedError('Account is inactive. Please contact administrator.');
+    }
+
+    // Check if user must change password
+    if (user.mustChangePassword) {
+        res.status(StatusCodes.OK).json({
+            user: null,
+            mustChangePassword: true,
+            message: 'Please change your password',
+        });
+        return;
     }
 
     const tokenUser = createTokenUser(user);
@@ -191,20 +241,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     res.status(StatusCodes.OK).json({ user: tokenUser });
 };
-
-// const logout = async (req, res) => {
-//     await Token.findOneAndDelete({ user: req.user.userId });
-
-//     res.cookie('accessToken', 'logout', {
-//       httpOnly: true,
-//       expires: new Date(Date.now()),
-//     });
-//     res.cookie('refreshToken', 'logout', {
-//       httpOnly: true,
-//       expires: new Date(Date.now()),
-//     });
-//     res.status(StatusCodes.OK).json({ msg: 'user logged out!' });
-//   };
 
 export const logout = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -312,6 +348,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
                     passwordHash,
                     passwordToken: null,
                     passwordTokenExpirationDate: null,
+                    mustChangePassword: false,
                 },
             });
 

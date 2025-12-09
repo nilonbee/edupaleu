@@ -5,11 +5,13 @@
     "passwordHash": "$2b$10$examplehashedpassword",
     "firstName": "System",
     "lastName": "Admin",
-    "roleId": 1, 
+    "roleId": 1,
     "phone": "+1234567890",
     "isActive": true,
     "isVerified": true,
-    "verified": "2024-01-01T00:00:00.000Z"
+    "verified": "2024-01-01T00:00:00.000Z",
+    "displayPicture": null,
+    "mustChangePassword": false
   },
   {
     "id": 2,
@@ -21,6 +23,22 @@
     "phone": "+1234567891",
     "isActive": true,
     "isVerified": true,
-    "verified": "2024-01-01T00:00:00.000Z"
+    "verified": "2024-01-01T00:00:00.000Z",
+    "displayPicture": null,
+    "mustChangePassword": false
+  },
+  {
+    "id": 3,
+    "email": "user.test@edupal.com",
+    "passwordHash": "$2b$10$examplehashedpassword",
+    "firstName": "Test",
+    "lastName": "User",
+    "roleId": 2,
+    "phone": "+1234567892",
+    "isActive": true,
+    "isVerified": true,
+    "verified": "2024-01-01T00:00:00.000Z",
+    "displayPicture": null,
+    "mustChangePassword": false
   }
 ]

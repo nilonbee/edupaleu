@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Navbar from "@/app/(components)/Navbar";
 import Sidebar from "@/app/(components)/Sidebar";
+import { PageWrapper } from "@/app/(components)/PageWrapper";
 import StoreProvider, { useAppSelector } from "@/app/redux";
 import { useGetCurrentUserQuery } from "@/state/api";
 import { setUser, clearUser } from "@/state/authSlice";
@@ -13,7 +14,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  
+
   // Check if current route is an auth route (public routes)
   const authRoutes = [
     "/login",
@@ -21,6 +22,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     "/forgot-password",
     "/reset-password",
     "/verify-email",
+    "/invite",
   ];
   const isAuthRoute = authRoutes.some((route) => pathname?.startsWith(route));
 
@@ -52,10 +54,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       if (!isAuthRoute && !isAuthenticated) {
         router.push("/login");
       } else if (isAuthRoute && isAuthenticated) {
+        // Don't redirect from /invite - let the invite page handle logout
+        if (pathname?.startsWith("/invite")) {
+          return; // Let the invite page handle logout
+        }
         router.push("/dashboard");
       }
     }
-  }, [isLoading, isAuthRoute, isAuthenticated, router]);
+  }, [isLoading, isAuthRoute, isAuthenticated, router, pathname]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -73,7 +79,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>
@@ -87,7 +93,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -103,16 +109,22 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     <div
       className={`${
         isDarkMode ? "dark" : "light"
-      } flex bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/40 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 text-slate-900 dark:text-slate-100 w-full min-h-screen`}
+      } flex bg-gray-50 dark:bg-[#0F1E3A] text-gray-900 dark:text-gray-50 w-full min-h-screen`}
     >
       <Sidebar />
       <main
-        className={`flex flex-col w-full h-full py-7 px-9 bg-gradient-to-br from-slate-50/80 via-blue-50/20 to-indigo-100/30 dark:from-slate-900/80 dark:via-slate-800/80 dark:to-indigo-950/80 backdrop-blur-sm ${
-          isSidebarCollapsed ? "md:pl-24" : "md:pl-72"
+        className={`flex flex-col w-full h-full pt-7 bg-gray-50 dark:bg-[#0F1E3A] ${
+          isSidebarCollapsed 
+            ? "md:pl-16" 
+            : "md:pl-64 lg:pl-72"
         }`}
       >
-        <Navbar />
-        {children}
+        <PageWrapper>
+          <div className="mb-6">
+            <Navbar />
+          </div>
+          {children}
+        </PageWrapper>
       </main>
     </div>
   );

@@ -6,7 +6,6 @@ import {
   completeStep,
   resetApplication,
   setStudent,
-  setSelectedUniversity,
   setMaritalStatus,
   setMarriageCertificate,
   addAcademicQualification,
@@ -14,6 +13,7 @@ import {
   addDocument,
   loadApplicationData,
 } from '@/state/applicationSlice';
+import { Student } from '@/types/applications';
 import { showToast } from '@/utils/toast';
 import { logger } from '@/utils/logger';
 import { APPLICATION_CONSTANTS } from '@/utils/constants';
@@ -26,7 +26,6 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
     currentStep,
     completedSteps,
     student,
-    selectedUniversity,
     academicQualifications,
     documents,
     maritalStatus,
@@ -55,25 +54,24 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
-          
+
           // If we have complete application data, use loadApplicationData
-          if (parsedData.student && parsedData.selectedUniversity) {
+          if (parsedData.student) {
             dispatch(loadApplicationData({
               student: parsedData.student,
-              university: parsedData.selectedUniversity,
               academicQualifications: parsedData.academicQualifications || [],
               documents: parsedData.documents || [],
               maritalStatus: parsedData.maritalStatus || 'SINGLE',
               marriageCertificate: parsedData.marriageCertificate,
               intendedPrograms: parsedData.intendedPrograms || [],
             }));
-            
+
             // Restore current step
             if (parsedData.currentStep !== undefined) {
               const safeStep = Math.max(0, Math.min(parsedData.currentStep, TOTAL_STEPS - 1));
               dispatch(setCurrentStep(safeStep));
             }
-            
+
             logger.log('Restored application data from localStorage');
           } else {
             // Partial restore - restore what we have
@@ -82,10 +80,9 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
               dispatch(setCurrentStep(safeStep));
             }
             if (parsedData.student) dispatch(setStudent(parsedData.student));
-            if (parsedData.selectedUniversity) dispatch(setSelectedUniversity(parsedData.selectedUniversity));
             if (parsedData.maritalStatus) dispatch(setMaritalStatus(parsedData.maritalStatus));
             if (parsedData.marriageCertificate) dispatch(setMarriageCertificate(parsedData.marriageCertificate));
-            
+
             // Restore arrays
             if (parsedData.academicQualifications) {
               parsedData.academicQualifications.forEach((qual: any) => {
@@ -108,7 +105,7 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
               });
             }
           }
-          
+
           hasRestoredRef.current = true;
         } catch (err) {
           logger.error('Error parsing localStorage data:', err);
@@ -127,7 +124,6 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
       const state = {
         currentStep: safeCurrentStep,
         student,
-        selectedUniversity,
         academicQualifications,
         documents,
         maritalStatus,
@@ -140,7 +136,6 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
   }, [
     safeCurrentStep,
     student,
-    selectedUniversity,
     academicQualifications,
     documents,
     maritalStatus,
@@ -162,16 +157,17 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
     if (safeCurrentStep >= TOTAL_STEPS - 1) return;
 
     // Special validation for steps that require at least one item
-    if (safeCurrentStep === 3 || safeCurrentStep === 6) {
+    // Step indices: 0=Details, 1=Academic, 2=Documents, 3=Marital, 4=Programs, 5=Review
+    if (safeCurrentStep === 1 || safeCurrentStep === 4) {
       let isValid = true;
       let errorMessage = '';
 
-      if (safeCurrentStep === 3 && academicQualifications.length === 0) {
+      if (safeCurrentStep === 1 && academicQualifications.length === 0) {
         isValid = false;
         errorMessage = 'Please add at least one academic qualification before proceeding.';
       }
 
-      if (safeCurrentStep === 6 && intendedPrograms.length === 0) {
+      if (safeCurrentStep === 4 && intendedPrograms.length === 0) {
         isValid = false;
         errorMessage = 'Please add at least one intended program before proceeding.';
       }
@@ -186,14 +182,104 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
       return;
     }
 
-    // Special validation for university selection
-    if (safeCurrentStep === 2) {
+    // Special validation for first step (student details)
+    if (safeCurrentStep === 0) {
       const isValid = await methods.trigger();
-      if (isValid && selectedUniversity) {
+      if (isValid) {
+        // Get ALL form values explicitly - this ensures we capture auto-filled values too
+        // List all possible field names to ensure they're all captured
+        const allFields = [
+          'firstName', 'lastName', 'dateOfBirth', 'gender', 'email', 'phone',
+          'nationality', 'passportNumber', 'passportExpiry', 'address', 'city',
+          'state', 'zipCode', 'studentId', 'hasEnglishTest', 'englishTestType',
+          'englishTestScore', 'englishTestDate', 'emergencyContactName', 'emergencyContactPhone'
+        ];
+
+        // Get all values at once - this captures all fields regardless of touch state
+        const formValues = methods.getValues();
+
+        // Also read directly from DOM to capture browser auto-filled values
+        // This is necessary because React Hook Form might not detect auto-filled values
+        const fieldValues: Record<string, any> = {};
+        allFields.forEach(field => {
+          // Try to get from DOM first (for auto-filled values)
+          const formElement = document.querySelector(`[name="${field}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+          const domValue = formElement?.value;
+
+          // Get from React Hook Form
+          const rhfValue = methods.getValues(field);
+
+          // Use DOM value if it exists and is different from RHF value (likely auto-filled)
+          // Otherwise use RHF value, fallback to formValues
+          if (domValue !== undefined && domValue !== '' && domValue !== rhfValue) {
+            fieldValues[field] = domValue;
+          } else {
+            fieldValues[field] = rhfValue !== undefined ? rhfValue : formValues[field];
+          }
+        });
+
+        logger.log('Form values (all fields):', fieldValues);
+        logger.log('DOM values captured:', allFields.map(f => {
+          const el = document.querySelector(`[name="${f}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+          return { field: f, value: el?.value };
+        }));
+        logger.log('Original form values:', formValues);
+
+        // Build student object with all form fields
+        // Use fieldValues first, fallback to formValues, then to existing student data
+        const updatedStudent: Student = {
+          id: student?.id ?? 0,
+          studentId: fieldValues.studentId || formValues.studentId || student?.studentId || '',
+          firstName: fieldValues.firstName || formValues.firstName || student?.firstName || '',
+          lastName: fieldValues.lastName || formValues.lastName || student?.lastName || '',
+          dateOfBirth: fieldValues.dateOfBirth || formValues.dateOfBirth || student?.dateOfBirth || '',
+          gender: (fieldValues.gender || formValues.gender || student?.gender || 'MALE') as 'MALE' | 'FEMALE' | 'OTHER',
+          email: fieldValues.email || formValues.email || student?.email || '',
+          hasEnglishTest: fieldValues.hasEnglishTest ?? formValues.hasEnglishTest ?? student?.hasEnglishTest ?? false,
+          // Optional fields - use fieldValues if available, otherwise formValues, otherwise existing, otherwise undefined
+          phone: fieldValues.phone !== undefined && fieldValues.phone !== '' ? fieldValues.phone :
+            (formValues.phone !== undefined && formValues.phone !== '' ? formValues.phone :
+              (student?.phone !== undefined && student.phone !== '' ? student.phone : undefined)),
+          nationality: fieldValues.nationality !== undefined && fieldValues.nationality !== '' ? fieldValues.nationality :
+            (formValues.nationality !== undefined && formValues.nationality !== '' ? formValues.nationality :
+              (student?.nationality !== undefined && student.nationality !== '' ? student.nationality : undefined)),
+          passportNumber: fieldValues.passportNumber !== undefined && fieldValues.passportNumber !== '' ? fieldValues.passportNumber :
+            (formValues.passportNumber !== undefined && formValues.passportNumber !== '' ? formValues.passportNumber :
+              (student?.passportNumber !== undefined && student.passportNumber !== '' ? student.passportNumber : undefined)),
+          passportExpiry: fieldValues.passportExpiry !== undefined && fieldValues.passportExpiry !== '' ? fieldValues.passportExpiry :
+            (formValues.passportExpiry !== undefined && formValues.passportExpiry !== '' ? formValues.passportExpiry :
+              (student?.passportExpiry !== undefined && student.passportExpiry !== '' ? student.passportExpiry : undefined)),
+          address: fieldValues.address !== undefined && fieldValues.address !== '' ? fieldValues.address :
+            (formValues.address !== undefined && formValues.address !== '' ? formValues.address :
+              (student?.address !== undefined && student.address !== '' ? student.address : undefined)),
+          city: fieldValues.city !== undefined && fieldValues.city !== '' ? fieldValues.city :
+            (formValues.city !== undefined && formValues.city !== '' ? formValues.city :
+              (student?.city !== undefined && student.city !== '' ? student.city : undefined)),
+          state: fieldValues.state !== undefined && fieldValues.state !== '' ? fieldValues.state :
+            (formValues.state !== undefined && formValues.state !== '' ? formValues.state :
+              (student?.state !== undefined && student.state !== '' ? student.state : undefined)),
+          zipCode: fieldValues.zipCode !== undefined && fieldValues.zipCode !== '' ? fieldValues.zipCode :
+            (formValues.zipCode !== undefined && formValues.zipCode !== '' ? formValues.zipCode :
+              (student?.zipCode !== undefined && student.zipCode !== '' ? student.zipCode : undefined)),
+          englishTestType: fieldValues.englishTestType !== undefined && fieldValues.englishTestType !== 'none' ? fieldValues.englishTestType :
+            (formValues.englishTestType !== undefined && formValues.englishTestType !== 'none' ? formValues.englishTestType :
+              (student?.englishTestType !== undefined && student.englishTestType !== 'none' ? student.englishTestType : undefined)),
+          englishTestScore: fieldValues.englishTestScore !== undefined && fieldValues.englishTestScore !== '' ? fieldValues.englishTestScore :
+            (formValues.englishTestScore !== undefined && formValues.englishTestScore !== '' ? formValues.englishTestScore :
+              (student?.englishTestScore !== undefined && student.englishTestScore !== '' ? student.englishTestScore : undefined)),
+          englishTestDate: fieldValues.englishTestDate !== undefined && fieldValues.englishTestDate !== '' ? fieldValues.englishTestDate :
+            (formValues.englishTestDate !== undefined && formValues.englishTestDate !== '' ? formValues.englishTestDate :
+              (student?.englishTestDate !== undefined && student.englishTestDate !== '' ? student.englishTestDate : undefined)),
+          displayPicture: student?.displayPicture,
+        };
+
+        logger.log('Saving student data to Redux:', updatedStudent);
+
+        // Save student data to Redux
+        dispatch(setStudent(updatedStudent));
+
         dispatch(completeStep(safeCurrentStep));
         dispatch(setCurrentStep(safeCurrentStep + 1));
-      } else {
-        showToast.error('Please select a university before proceeding.');
       }
       return;
     }
@@ -230,7 +316,6 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
     resetForm,
     formState: {
       student,
-      selectedUniversity,
       academicQualifications,
       documents,
       maritalStatus,

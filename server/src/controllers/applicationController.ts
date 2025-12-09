@@ -25,11 +25,11 @@ export const getApplications = async (req: Request, res: Response) => {
 
         // Status filter - support multiple statuses (comma-separated)
         if (status) {
-            const statusArray = (status as string).split(',').map(s => s.trim());
+            const statusArray = (status as string).split(',').map(s => s.trim().toLowerCase());
             const statusRecords = await prisma.applicationStatus.findMany({
                 where: {
                     status: {
-                        in: statusArray.map(s => s.toUpperCase())
+                        in: statusArray
                     }
                 },
                 select: { id: true }
@@ -42,12 +42,14 @@ export const getApplications = async (req: Request, res: Response) => {
             }
         }
 
-        // Global search - search across applicationRef, student name, university name, program
+        // Global search - search across applicationRef, student name (direct or via student relation), university name, program
         if (search) {
             const searchTerm = (search as string).trim();
             where.OR = [
                 { applicationRef: { contains: searchTerm, mode: 'insensitive' } },
                 { intendedProgram: { contains: searchTerm, mode: 'insensitive' } },
+                { firstName: { contains: searchTerm, mode: 'insensitive' } },
+                { lastName: { contains: searchTerm, mode: 'insensitive' } },
                 {
                     student: {
                         OR: [
@@ -60,6 +62,15 @@ export const getApplications = async (req: Request, res: Response) => {
                 {
                     university: {
                         name: { contains: searchTerm, mode: 'insensitive' }
+                    }
+                },
+                {
+                    enquiry: {
+                        OR: [
+                            { firstName: { contains: searchTerm, mode: 'insensitive' } },
+                            { lastName: { contains: searchTerm, mode: 'insensitive' } },
+                            { email: { contains: searchTerm, mode: 'insensitive' } }
+                        ]
                     }
                 }
             ];
@@ -95,6 +106,22 @@ export const getApplications = async (req: Request, res: Response) => {
                         lastName: true,
                         email: true,
                         displayPicture: true,
+                    }
+                },
+                enquiry: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    }
+                },
+                assignedTo: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
                     }
                 },
                 university: {
@@ -149,6 +176,7 @@ export const getApplications = async (req: Request, res: Response) => {
 
 export const createApplication = async (req: Request, res: Response) => {
     try {
+        const currentUser = (req as any).user;
         const {
             student,
             university,
@@ -156,45 +184,29 @@ export const createApplication = async (req: Request, res: Response) => {
             documents,
             maritalStatus,
             marriageCertificate,
-            intendedPrograms
+            intendedPrograms,
+            enquiryId
         } = req.body;
 
-        if (!student || !student.id) {
+        // Validate required fields
+        if (!student) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
                 message: "Student information is required"
             });
         }
 
-        if (!university || !university.id) {
+        if (!student.firstName || student.firstName.trim() === '') {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
-                message: "University information is required"
+                message: "Student first name is required"
             });
         }
 
-        const studentId = student.id;
-        const universityId = university.id;
-
-        const studentExists = await prisma.student.findUnique({
-            where: { id: studentId }
-        });
-
-        if (!studentExists) {
-            return res.status(StatusCodes.NOT_FOUND).json({
+        if (!student.email || student.email.trim() === '') {
+            return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
-                message: "Student not found"
-            });
-        }
-
-        const universityExists = await prisma.university.findUnique({
-            where: { id: universityId }
-        });
-
-        if (!universityExists) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                message: "University not found"
+                message: "Student email is required"
             });
         }
 
@@ -208,28 +220,174 @@ export const createApplication = async (req: Request, res: Response) => {
         // Take the first intended program as primary
         const primaryProgram = intendedPrograms[0];
 
-        // Generate application reference
-        const applicationRef = generateApplicationRef();
+        // University ID is optional - use from request if provided, otherwise null (university is stored as string in intended programs)
+        const universityId = university?.id || null;
+
+        // Check if an application already exists for this enquiry
+        if (enquiryId) {
+            const existingApplication = await prisma.application.findFirst({
+                where: { enquiryId: parseInt(enquiryId, 10) }
+            });
+
+            if (existingApplication) {
+                return res.status(StatusCodes.CONFLICT).json({
+                    success: false,
+                    message: "An application already exists for this enquiry",
+                    data: {
+                        applicationId: existingApplication.id,
+                        applicationRef: existingApplication.applicationRef
+                    }
+                });
+            }
+        }
 
         // Create application with all related data in a transaction
+        // Handle reference collision inside transaction to prevent race conditions
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Create the main application
+            // Generate application reference with collision handling INSIDE transaction
+            let applicationRef = generateApplicationRef();
+            let refAttempts = 0;
+            const maxRefAttempts = 20; // Increased attempts for better collision handling
+
+            // Check if reference already exists and regenerate if needed (atomic check)
+            while (refAttempts < maxRefAttempts) {
+                const existingRef = await tx.application.findUnique({
+                    where: { applicationRef },
+                    select: { id: true }
+                });
+
+                if (!existingRef) {
+                    break; // Reference is unique, proceed
+                }
+
+                // Regenerate reference
+                applicationRef = generateApplicationRef();
+                refAttempts++;
+            }
+
+            if (refAttempts >= maxRefAttempts) {
+                throw new Error("Failed to generate unique application reference after multiple attempts");
+            }
+
+            // 1. Create or get student
+            let studentId: number | null = null;
+
+            if (student?.id) {
+                // Existing student - verify it exists
+                const studentExists = await tx.student.findUnique({
+                    where: { id: student.id }
+                });
+                if (studentExists) {
+                    studentId = student.id;
+                    // Update student with latest data
+                    // Normalize gender to lowercase enum value
+                    let normalizedGender: 'male' | 'female' | 'other' | null = null;
+                    if (student.gender) {
+                        const genderLower = student.gender.toLowerCase();
+                        if (genderLower === 'male' || genderLower === 'female' || genderLower === 'other') {
+                            normalizedGender = genderLower as 'male' | 'female' | 'other';
+                        }
+                    }
+
+                    await tx.student.update({
+                        where: { id: student.id },
+                        data: {
+                            firstName: student.firstName.trim(),
+                            lastName: student.lastName?.trim() || null,
+                            dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth) : new Date(),
+                            gender: normalizedGender,
+                            email: student.email.trim(),
+                            phone: student.phone || null,
+                            nationality: student.nationality || null,
+                            passportNumber: student.passportNumber || null,
+                            passportExpiry: student.passportExpiry ? new Date(student.passportExpiry) : null,
+                            address: student.address || null,
+                            city: student.city || null,
+                            state: student.state || null,
+                            zipCode: student.zipCode || null,
+                            displayPicture: student.displayPicture || null,
+                            hasEnglishTest: student.hasEnglishTest || false,
+                            englishTestType: student.englishTestType || null,
+                            englishTestScore: student.englishTestScore || null,
+                            englishTestDate: student.englishTestDate ? new Date(student.englishTestDate) : null,
+                        }
+                    });
+                }
+            }
+
+            // If no existing student, create a new one
+            if (!studentId) {
+                // Parse dateOfBirth - handle both string and Date formats
+                let dateOfBirth: Date;
+                if (student.dateOfBirth) {
+                    dateOfBirth = student.dateOfBirth instanceof Date
+                        ? student.dateOfBirth
+                        : new Date(student.dateOfBirth);
+                    // Validate date
+                    if (isNaN(dateOfBirth.getTime())) {
+                        dateOfBirth = new Date(); // Fallback to current date if invalid
+                    }
+                } else {
+                    dateOfBirth = new Date(); // Default to current date if not provided
+                }
+
+                // Normalize gender to lowercase enum value
+                let normalizedGender: 'male' | 'female' | 'other' | null = null;
+                if (student.gender) {
+                    const genderLower = student.gender.toLowerCase();
+                    if (genderLower === 'male' || genderLower === 'female' || genderLower === 'other') {
+                        normalizedGender = genderLower as 'male' | 'female' | 'other';
+                    }
+                }
+
+                const newStudent = await tx.student.create({
+                    data: {
+                        firstName: student.firstName.trim(),
+                        lastName: student.lastName?.trim() || null,
+                        dateOfBirth: dateOfBirth,
+                        gender: normalizedGender,
+                        email: student.email.trim(),
+                        phone: student.phone?.trim() || null,
+                        nationality: student.nationality?.trim() || null,
+                        passportNumber: student.passportNumber?.trim() || null,
+                        passportExpiry: student.passportExpiry ? (student.passportExpiry instanceof Date ? student.passportExpiry : new Date(student.passportExpiry)) : null,
+                        address: student.address?.trim() || null,
+                        city: student.city?.trim() || null,
+                        state: student.state?.trim() || null,
+                        zipCode: student.zipCode?.trim() || null,
+                        displayPicture: student.displayPicture || null,
+                        hasEnglishTest: student.hasEnglishTest || false,
+                        englishTestType: student.englishTestType || null,
+                        englishTestScore: student.englishTestScore?.trim() || null,
+                        englishTestDate: student.englishTestDate ? (student.englishTestDate instanceof Date ? student.englishTestDate : new Date(student.englishTestDate)) : null,
+                        createdBy: currentUser.userId || null,
+                    }
+                });
+                studentId = newStudent.id;
+            }
+
+            // 2. Create the main application
             const application = await tx.application.create({
                 data: {
                     applicationRef,
+                    enquiryId: enquiryId ? parseInt(enquiryId, 10) : null,
                     studentId: studentId,
-                    universityId: universityId,
+                    firstName: student.firstName,
+                    lastName: student.lastName || '',
+                    universityId: universityId || 1, // Use 1 as default if null (schema requires Int)
                     intendedProgram: primaryProgram.programme || 'Not specified',
-                    intakeYear: new Date().getFullYear(),
-                    intakeMonth: 'SEPTEMBER',
+                    intakeYear: primaryProgram.intakeYear || new Date().getFullYear(),
+                    intakeMonth: primaryProgram.intakeMonth || 'SEPTEMBER',
                     applicationStatusId: 1, // Assuming 1 = PENDING
                     applicationFee: 0,
                     feePaid: false,
                     submissionDate: new Date(),
+                    createdBy: currentUser.name || `${currentUser.firstName} ${currentUser.lastName}`,
+                    assignedToId: currentUser.userId || null,
                 }
             });
 
-            // 2. Create application documents
+            // 3. Create application documents
             if (documents && documents.length > 0) {
                 await tx.applicationDocument.createMany({
                     data: documents.map((doc: any) => ({
@@ -257,7 +415,7 @@ export const createApplication = async (req: Request, res: Response) => {
                 });
             }
 
-            // 4. Create intended programs
+            // 5. Create intended programs
             if (intendedPrograms && intendedPrograms.length > 0) {
                 await tx.intendedProgram.createMany({
                     data: intendedPrograms.map((program: any, index: number) => ({
@@ -265,24 +423,26 @@ export const createApplication = async (req: Request, res: Response) => {
                         country: program.country || 'Not specified',
                         university: program.university || 'Not specified',
                         programme: program.programme || 'Not specified',
-                        priority: index + 1,
-                        isPrimary: index === 0
+                        priority: program.priority || index + 1, // Use priority from frontend if provided
+                        isPrimary: (program.priority || index + 1) === 1 // First priority is primary
                     }))
                 });
             }
 
-            // 5. Update student's marital status
-            await tx.student.update({
-                where: { id: studentId },
-                data: {
-                    maritalStatus: maritalStatus || 'SINGLE',
-                    ...(maritalStatus === 'MARRIED' && marriageCertificate?.filePath && {
-                        marriageCertificatePath: marriageCertificate.filePath
-                    })
-                }
-            });
+            // 5. Update student's marital status (only if student exists)
+            if (studentId) {
+                await tx.student.update({
+                    where: { id: studentId },
+                    data: {
+                        maritalStatus: maritalStatus || 'SINGLE',
+                        ...(maritalStatus === 'MARRIED' && marriageCertificate?.filePath && {
+                            marriageCertificatePath: marriageCertificate.filePath
+                        })
+                    }
+                });
+            }
 
-            // 6. Create academic qualifications using nested write
+            // 7. Create academic qualifications using nested write
             if (academicQualifications && Array.isArray(academicQualifications) && academicQualifications.length > 0) {
                 await tx.academicQualification.createMany({
                     data: academicQualifications.map((qual: any) => ({
@@ -308,7 +468,23 @@ export const createApplication = async (req: Request, res: Response) => {
         const createdApp = await prisma.application.findUnique({
             where: { id: result.id },
             include: {
-                student: true,
+                student: true, // Include ALL student fields
+                enquiry: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    }
+                },
+                assignedTo: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    }
+                },
                 academicQualifications: {
                     orderBy: { createdAt: 'asc' }
                 },
@@ -365,12 +541,55 @@ export const createApplication = async (req: Request, res: Response) => {
             documentPath: qual.documentPath || null,
         }));
 
-        // Prepare student response
-        const studentResponse = {
-            id: createdApp?.student?.id,
-            firstName: createdApp?.student?.firstName,
-            lastName: createdApp?.student?.lastName,
-            email: createdApp?.student?.email
+        // Prepare student response with ALL fields - use student relation if exists, otherwise use direct firstName/lastName
+        const studentResponse = createdApp?.student ? {
+            id: createdApp.student.id,
+            studentId: (createdApp.student as any).studentId || null, // studentId might not exist in schema
+            firstName: createdApp.student.firstName,
+            lastName: createdApp.student.lastName || null,
+            dateOfBirth: (createdApp.student as any).dateOfBirth ? (createdApp.student as any).dateOfBirth.toISOString().split('T')[0] : null,
+            gender: (createdApp.student as any).gender || null,
+            email: createdApp.student.email,
+            phone: (createdApp.student as any).phone || null,
+            nationality: (createdApp.student as any).nationality || null,
+            passportNumber: (createdApp.student as any).passportNumber || null,
+            passportExpiry: (createdApp.student as any).passportExpiry ? (createdApp.student as any).passportExpiry.toISOString().split('T')[0] : null,
+            address: (createdApp.student as any).address || null,
+            city: (createdApp.student as any).city || null,
+            state: (createdApp.student as any).state || null,
+            zipCode: (createdApp.student as any).zipCode || null,
+            displayPicture: (createdApp.student as any).displayPicture || null,
+            emergencyContactName: (createdApp.student as any).emergencyContactName || null,
+            emergencyContactPhone: (createdApp.student as any).emergencyContactPhone || null,
+            hasEnglishTest: (createdApp.student as any).hasEnglishTest || false,
+            englishTestType: (createdApp.student as any).englishTestType || null,
+            englishTestScore: (createdApp.student as any).englishTestScore || null,
+            englishTestDate: (createdApp.student as any).englishTestDate ? (createdApp.student as any).englishTestDate.toISOString().split('T')[0] : null,
+            maritalStatus: (createdApp.student as any).maritalStatus || null,
+        } : {
+            id: null,
+            studentId: null,
+            firstName: createdApp?.firstName || student.firstName,
+            lastName: createdApp?.lastName || student.lastName,
+            dateOfBirth: student.dateOfBirth || null,
+            gender: student.gender || null,
+            email: student.email || null,
+            phone: student.phone || null,
+            nationality: student.nationality || null,
+            passportNumber: student.passportNumber || null,
+            passportExpiry: student.passportExpiry || null,
+            address: student.address || null,
+            city: student.city || null,
+            state: student.state || null,
+            zipCode: student.zipCode || null,
+            displayPicture: student.displayPicture || null,
+            emergencyContactName: null,
+            emergencyContactPhone: null,
+            hasEnglishTest: student.hasEnglishTest || false,
+            englishTestType: student.englishTestType || null,
+            englishTestScore: student.englishTestScore || null,
+            englishTestDate: student.englishTestDate || null,
+            maritalStatus: null,
         };
 
         // Build response object explicitly
@@ -408,10 +627,25 @@ export const createApplication = async (req: Request, res: Response) => {
 
         // Handle specific Prisma errors
         if (error.code === 'P2002') {
-            return res.status(StatusCodes.CONFLICT).json({
-                success: false,
-                message: "Application reference already exists"
-            });
+            // Check which unique constraint was violated
+            const meta = error.meta as any;
+            const target = meta?.target as string[] | undefined;
+
+            if (target && Array.isArray(target) && target.includes('applicationRef')) {
+                // Reference collision - this shouldn't happen with our collision handling, but handle it gracefully
+                return res.status(StatusCodes.CONFLICT).json({
+                    success: false,
+                    message: "Application reference collision detected. Please try again.",
+                    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                });
+            } else {
+                // Other unique constraint violation (e.g., email, passportNumber)
+                return res.status(StatusCodes.CONFLICT).json({
+                    success: false,
+                    message: "A duplicate record already exists",
+                    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                });
+            }
         }
 
         if (error.code === 'P2003') {
@@ -471,12 +705,55 @@ export const getApplication = async (req: Request, res: Response) => {
             documentPath: qual.documentPath || null,
         }));
 
-        // Prepare student response
-        const studentResponse = {
+        // Prepare student response with ALL fields (handle null student)
+        const studentResponse = application.student ? {
             id: application.student.id,
+            studentId: (application.student as any).studentId || null, // studentId might not exist in schema
             firstName: application.student.firstName,
-            lastName: application.student.lastName,
-            email: application.student.email
+            lastName: application.student.lastName || null,
+            dateOfBirth: application.student.dateOfBirth ? application.student.dateOfBirth.toISOString().split('T')[0] : null,
+            gender: application.student.gender || null,
+            email: application.student.email,
+            phone: application.student.phone || null,
+            nationality: application.student.nationality || null,
+            passportNumber: application.student.passportNumber || null,
+            passportExpiry: application.student.passportExpiry ? application.student.passportExpiry.toISOString().split('T')[0] : null,
+            address: application.student.address || null,
+            city: application.student.city || null,
+            state: application.student.state || null,
+            zipCode: application.student.zipCode || null,
+            displayPicture: application.student.displayPicture || null,
+            emergencyContactName: application.student.emergencyContactName || null,
+            emergencyContactPhone: application.student.emergencyContactPhone || null,
+            hasEnglishTest: application.student.hasEnglishTest || false,
+            englishTestType: application.student.englishTestType || null,
+            englishTestScore: application.student.englishTestScore || null,
+            englishTestDate: application.student.englishTestDate ? application.student.englishTestDate.toISOString().split('T')[0] : null,
+            maritalStatus: application.student.maritalStatus || null,
+        } : {
+            id: null,
+            studentId: null,
+            firstName: application.firstName,
+            lastName: application.lastName,
+            dateOfBirth: null,
+            gender: null,
+            email: null,
+            phone: null,
+            nationality: null,
+            passportNumber: null,
+            passportExpiry: null,
+            address: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            displayPicture: null,
+            emergencyContactName: null,
+            emergencyContactPhone: null,
+            hasEnglishTest: false,
+            englishTestType: null,
+            englishTestScore: null,
+            englishTestDate: null,
+            maritalStatus: null,
         };
 
         return res.status(StatusCodes.OK).json({
@@ -485,7 +762,7 @@ export const getApplication = async (req: Request, res: Response) => {
                 id: application.id,
                 applicationRef: application.applicationRef,
                 student: studentResponse,
-                university: application.university,
+                university: application.university || null,
                 academicQualifications: formattedAcademicQualifications,
                 applicationStatus: application.applicationStatus,
                 documents: application.documents,
@@ -531,46 +808,25 @@ export const updateApplication = async (req: Request, res: Response) => {
             });
         }
 
-        // Validate student
-        if (!student || !student.id) {
+        // Validate required fields
+        if (!student) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
                 message: "Student information is required"
             });
         }
 
-        // Validate university
-        if (!university || !university.id) {
+        if (!student.firstName || student.firstName.trim() === '') {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
-                message: "University information is required"
+                message: "Student first name is required"
             });
         }
 
-        const studentId = student.id;
-        const universityId = university.id;
-
-        // Check if student exists
-        const studentExists = await prisma.student.findUnique({
-            where: { id: studentId }
-        });
-
-        if (!studentExists) {
-            return res.status(StatusCodes.NOT_FOUND).json({
+        if (!student.email || student.email.trim() === '') {
+            return res.status(StatusCodes.BAD_REQUEST).json({
                 success: false,
-                message: "Student not found"
-            });
-        }
-
-        // Check if university exists
-        const universityExists = await prisma.university.findUnique({
-            where: { id: universityId }
-        });
-
-        if (!universityExists) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                success: false,
-                message: "University not found"
+                message: "Student email is required"
             });
         }
 
@@ -585,20 +841,135 @@ export const updateApplication = async (req: Request, res: Response) => {
         // Take the first intended program as primary
         const primaryProgram = intendedPrograms[0];
 
+        // University ID is optional - use from request if provided, otherwise null (university is stored as string in intended programs)
+        const universityId = university?.id || null;
+
         // Update application with all related data in a transaction
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Update the main application
+            // 1. Create or get student
+            let studentId: number | null = null;
+
+            if (student?.id) {
+                // Existing student - verify it exists
+                const studentExists = await tx.student.findUnique({
+                    where: { id: student.id }
+                });
+                if (studentExists) {
+                    studentId = student.id;
+                    // Update student with latest data
+                    // Parse dateOfBirth - handle both string and Date formats
+                    let dateOfBirth: Date;
+                    if (student.dateOfBirth) {
+                        dateOfBirth = student.dateOfBirth instanceof Date
+                            ? student.dateOfBirth
+                            : new Date(student.dateOfBirth);
+                        // Validate date
+                        if (isNaN(dateOfBirth.getTime())) {
+                            dateOfBirth = new Date(); // Fallback to current date if invalid
+                        }
+                    } else {
+                        dateOfBirth = new Date(); // Default to current date if not provided
+                    }
+
+                    // Normalize gender to lowercase enum value
+                    let normalizedGender: 'male' | 'female' | 'other' | null = null;
+                    if (student.gender) {
+                        const genderLower = student.gender.toLowerCase();
+                        if (genderLower === 'male' || genderLower === 'female' || genderLower === 'other') {
+                            normalizedGender = genderLower as 'male' | 'female' | 'other';
+                        }
+                    }
+
+                    await tx.student.update({
+                        where: { id: student.id },
+                        data: {
+                            firstName: student.firstName.trim(),
+                            lastName: student.lastName?.trim() || null,
+                            dateOfBirth: dateOfBirth,
+                            gender: normalizedGender,
+                            email: student.email.trim(),
+                            phone: student.phone?.trim() || null,
+                            nationality: student.nationality?.trim() || null,
+                            passportNumber: student.passportNumber?.trim() || null,
+                            passportExpiry: student.passportExpiry ? (student.passportExpiry instanceof Date ? student.passportExpiry : new Date(student.passportExpiry)) : null,
+                            address: student.address?.trim() || null,
+                            city: student.city?.trim() || null,
+                            state: student.state?.trim() || null,
+                            zipCode: student.zipCode?.trim() || null,
+                            displayPicture: student.displayPicture || null,
+                            hasEnglishTest: student.hasEnglishTest || false,
+                            englishTestType: student.englishTestType || null,
+                            englishTestScore: student.englishTestScore?.trim() || null,
+                            englishTestDate: student.englishTestDate ? (student.englishTestDate instanceof Date ? student.englishTestDate : new Date(student.englishTestDate)) : null,
+                        }
+                    });
+                }
+            }
+
+            // If no existing student, create a new one
+            if (!studentId) {
+                // Parse dateOfBirth - handle both string and Date formats
+                let dateOfBirth: Date;
+                if (student.dateOfBirth) {
+                    dateOfBirth = student.dateOfBirth instanceof Date
+                        ? student.dateOfBirth
+                        : new Date(student.dateOfBirth);
+                    // Validate date
+                    if (isNaN(dateOfBirth.getTime())) {
+                        dateOfBirth = new Date(); // Fallback to current date if invalid
+                    }
+                } else {
+                    dateOfBirth = new Date(); // Default to current date if not provided
+                }
+
+                // Normalize gender to lowercase enum value
+                let normalizedGender: 'male' | 'female' | 'other' | null = null;
+                if (student.gender) {
+                    const genderLower = student.gender.toLowerCase();
+                    if (genderLower === 'male' || genderLower === 'female' || genderLower === 'other') {
+                        normalizedGender = genderLower as 'male' | 'female' | 'other';
+                    }
+                }
+
+                const newStudent = await tx.student.create({
+                    data: {
+                        firstName: student.firstName.trim(),
+                        lastName: student.lastName?.trim() || null,
+                        dateOfBirth: dateOfBirth,
+                        gender: normalizedGender,
+                        email: student.email.trim(),
+                        phone: student.phone?.trim() || null,
+                        nationality: student.nationality?.trim() || null,
+                        passportNumber: student.passportNumber?.trim() || null,
+                        passportExpiry: student.passportExpiry ? (student.passportExpiry instanceof Date ? student.passportExpiry : new Date(student.passportExpiry)) : null,
+                        address: student.address?.trim() || null,
+                        city: student.city?.trim() || null,
+                        state: student.state?.trim() || null,
+                        zipCode: student.zipCode?.trim() || null,
+                        displayPicture: student.displayPicture || null,
+                        hasEnglishTest: student.hasEnglishTest || false,
+                        englishTestType: student.englishTestType || null,
+                        englishTestScore: student.englishTestScore?.trim() || null,
+                        englishTestDate: student.englishTestDate ? (student.englishTestDate instanceof Date ? student.englishTestDate : new Date(student.englishTestDate)) : null,
+                    }
+                });
+                studentId = newStudent.id;
+            }
+
+            // 2. Update the main application
             const application = await tx.application.update({
                 where: { id: parseInt(id) },
                 data: {
                     studentId: studentId,
-                    universityId: universityId,
+                    firstName: student.firstName,
+                    lastName: student.lastName || '',
+                    universityId: universityId || existingApplication.universityId, // Keep existing if null
                     intendedProgram: primaryProgram.programme || 'Not specified',
                     updatedAt: new Date(),
                 }
             });
 
-            // 2. Delete existing documents and create new ones
+            // 3. Delete existing documents and create new ones
             await tx.applicationDocument.deleteMany({
                 where: { applicationId: application.id }
             });
@@ -630,7 +1001,7 @@ export const updateApplication = async (req: Request, res: Response) => {
                 });
             }
 
-            // 4. Delete existing intended programs and create new ones
+            // 5. Delete existing intended programs and create new ones
             await tx.intendedProgram.deleteMany({
                 where: { applicationId: application.id }
             });
@@ -642,22 +1013,24 @@ export const updateApplication = async (req: Request, res: Response) => {
                         country: program.country || 'Not specified',
                         university: program.university || 'Not specified',
                         programme: program.programme || 'Not specified',
-                        priority: index + 1,
-                        isPrimary: index === 0
+                        priority: program.priority || index + 1, // Use priority from frontend if provided
+                        isPrimary: (program.priority || index + 1) === 1 // First priority is primary
                     }))
                 });
             }
 
-            // 5. Update student's marital status
-            await tx.student.update({
-                where: { id: studentId },
-                data: {
-                    maritalStatus: maritalStatus || 'SINGLE',
-                    ...(maritalStatus === 'MARRIED' && marriageCertificate?.filePath && {
-                        marriageCertificatePath: marriageCertificate.filePath
-                    })
-                }
-            });
+            // 5. Update student's marital status (only if student exists)
+            if (studentId) {
+                await tx.student.update({
+                    where: { id: studentId },
+                    data: {
+                        maritalStatus: maritalStatus || 'SINGLE',
+                        ...(maritalStatus === 'MARRIED' && marriageCertificate?.filePath && {
+                            marriageCertificatePath: marriageCertificate.filePath
+                        })
+                    }
+                });
+            }
 
             // 6. Delete existing academic qualifications and create new ones
             await tx.academicQualification.deleteMany({
@@ -726,13 +1099,55 @@ export const updateApplication = async (req: Request, res: Response) => {
             }
         });
 
-        // Prepare student response
-        const studentResponse = {
-            id: updatedApp?.student?.id,
-            firstName: updatedApp?.student?.firstName,
-            lastName: updatedApp?.student?.lastName,
-            email: updatedApp?.student?.email,
-            maritalStatus: updatedApp?.student?.maritalStatus
+        // Prepare student response with ALL fields
+        const studentResponse = updatedApp?.student ? {
+            id: updatedApp.student.id,
+            studentId: (updatedApp.student as any).studentId || null, // studentId might not exist in schema
+            firstName: updatedApp.student.firstName,
+            lastName: updatedApp.student.lastName || null,
+            dateOfBirth: updatedApp.student.dateOfBirth ? updatedApp.student.dateOfBirth.toISOString().split('T')[0] : null,
+            gender: updatedApp.student.gender || null,
+            email: updatedApp.student.email,
+            phone: updatedApp.student.phone || null,
+            nationality: updatedApp.student.nationality || null,
+            passportNumber: updatedApp.student.passportNumber || null,
+            passportExpiry: updatedApp.student.passportExpiry ? updatedApp.student.passportExpiry.toISOString().split('T')[0] : null,
+            address: updatedApp.student.address || null,
+            city: updatedApp.student.city || null,
+            state: updatedApp.student.state || null,
+            zipCode: updatedApp.student.zipCode || null,
+            displayPicture: updatedApp.student.displayPicture || null,
+            emergencyContactName: updatedApp.student.emergencyContactName || null,
+            emergencyContactPhone: updatedApp.student.emergencyContactPhone || null,
+            hasEnglishTest: updatedApp.student.hasEnglishTest || false,
+            englishTestType: updatedApp.student.englishTestType || null,
+            englishTestScore: updatedApp.student.englishTestScore || null,
+            englishTestDate: updatedApp.student.englishTestDate ? updatedApp.student.englishTestDate.toISOString().split('T')[0] : null,
+            maritalStatus: updatedApp.student.maritalStatus || null,
+        } : {
+            id: null,
+            studentId: null,
+            firstName: updatedApp?.firstName || null,
+            lastName: updatedApp?.lastName || null,
+            dateOfBirth: null,
+            gender: null,
+            email: null,
+            phone: null,
+            nationality: null,
+            passportNumber: null,
+            passportExpiry: null,
+            address: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            displayPicture: null,
+            emergencyContactName: null,
+            emergencyContactPhone: null,
+            hasEnglishTest: false,
+            englishTestType: null,
+            englishTestScore: null,
+            englishTestDate: null,
+            maritalStatus: null,
         };
 
         // Format academic qualifications for response
@@ -754,13 +1169,7 @@ export const updateApplication = async (req: Request, res: Response) => {
         const responseData = {
             applicationId: updatedApp?.id,
             applicationRef: updatedApp?.applicationRef,
-            student: {
-                id: updatedApp?.student?.id,
-                firstName: updatedApp?.student?.firstName,
-                lastName: updatedApp?.student?.lastName,
-                email: updatedApp?.student?.email,
-                maritalStatus: updatedApp?.student?.maritalStatus
-            },
+            student: studentResponse,
             university: updatedApp?.university,
             academicQualifications: Array.isArray(formattedAcademicQualifications) ? formattedAcademicQualifications : [],
             documents: updatedApp?.documents || [],
@@ -870,7 +1279,7 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
         const statusRecord = await prisma.applicationStatus.findFirst({
             where: {
                 status: {
-                    equals: status.toUpperCase(),
+                    equals: status.toLowerCase(),
                     mode: 'insensitive'
                 }
             }

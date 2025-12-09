@@ -62,36 +62,37 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
-        "gradient-primary": "linear-gradient(to bottom right, var(--tw-gradient-stops))",
-        "gradient-card": "linear-gradient(135deg, var(--tw-gradient-stops))",
-        // Global theme gradients from Sidebar
-        "gradient-theme": "linear-gradient(to bottom, rgb(15 23 42), rgb(30 41 59), rgb(30 27 75))",
-        "gradient-theme-horizontal": "linear-gradient(to right, rgb(6 182 212 / 0.2), rgb(37 99 235 / 0.2))",
-        "gradient-theme-button": "linear-gradient(to right, rgb(6 182 212), rgb(37 99 235))",
-        "gradient-theme-button-hover": "linear-gradient(to right, rgb(8 145 178), rgb(29 78 216))",
+      fontFamily: {
+        primary: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        poppins: ['Poppins', 'sans-serif'],
+        mono: ['JetBrains Mono', 'SF Mono', 'Monaco', 'Cascadia Code', 'monospace'],
       },
       colors: {
-        // Theme colors from Sidebar
-        "theme-cyan": {
-          DEFAULT: "rgb(6 182 212)",
-          100: "rgb(207 250 254)",
-          200: "rgb(165 243 252)",
-          300: "rgb(103 232 249)",
-          400: "rgb(34 211 238)",
-          500: "rgb(6 182 212)",
-          600: "rgb(8 145 178)",
-          700: "rgb(14 116 144)",
+        // ImageKit Primary Colors
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6', // Main Primary
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
-        "theme-blue": {
-          DEFAULT: "rgb(37 99 235)",
-          400: "rgb(96 165 250)",
-          500: "rgb(59 130 246)",
-          600: "rgb(37 99 235)",
-          700: "rgb(29 78 216)",
+        // ImageKit Semantic Colors
+        success: {
+          500: '#10b981',
+        },
+        warning: {
+          500: '#f59e0b',
+        },
+        error: {
+          500: '#ef4444',
+        },
+        info: {
+          500: '#3b82f6',
         },
       },
     },

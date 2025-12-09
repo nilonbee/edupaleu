@@ -6,6 +6,7 @@ import {
   verifyEmail,
   forgotPassword,
   resetPassword,
+  setupPasswordFromInvite,
 } from '../controllers/authController';
 import { authenticateUser } from '../middleware/authentication';
 import {
@@ -26,6 +27,7 @@ router.delete('/logout', logout); // Logout can be called without auth (graceful
 router.post('/verify-email', validateRequest(validateVerifyEmail), verifyEmail);
 router.post('/forgot-password', validateRequest(validateForgotPassword), forgotPassword);
 router.post('/reset-password', validateRequest(validateResetPassword), resetPassword);
+router.post('/invite', setupPasswordFromInvite); // Setup password from invite token
 
 export default router;
 

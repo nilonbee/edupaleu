@@ -14,7 +14,7 @@ export const APPLICATION_CONSTANTS = {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ],
-  TOTAL_STEPS: 8,
+  TOTAL_STEPS: 6, // Updated after removing UniversitySelection step (kept IntendedPrograms)
   STORAGE_KEYS: {
     APPLICATION_WIZARD: 'applicationWizard',
   },
@@ -36,10 +36,6 @@ export const DOCUMENT_TYPES = {
 
 export const REQUIRED_DOCUMENTS = [
   DOCUMENT_TYPES.OL_CERTIFICATE,
-  DOCUMENT_TYPES.AL_CERTIFICATE,
-  DOCUMENT_TYPES.BACHELORS_CERTIFICATE,
   DOCUMENT_TYPES.PASSPORT,
-  DOCUMENT_TYPES.PHOTOGRAPH,
-  DOCUMENT_TYPES.CV,
 ] as const;
 

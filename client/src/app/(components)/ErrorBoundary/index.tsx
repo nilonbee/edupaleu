@@ -1,6 +1,7 @@
 "use client";
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { logger } from '@/utils/logger';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { logger } from "@/utils/logger";
+import Button from "@/app/(components)/Button";
 
 interface Props {
   children: ReactNode;
@@ -24,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to error tracking service in production
-    logger.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error("ErrorBoundary caught an error:", error, errorInfo);
     // TODO: Send to error tracking service (e.g., Sentry)
   }
 
@@ -46,9 +47,10 @@ export class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h2>
             <p className="text-sm text-gray-600 mb-6">
-              We&apos;re sorry, but something unexpected happened. Please try refreshing the page.
+              We&apos;re sorry, but something unexpected happened. Please try
+              refreshing the page.
             </p>
-            {this.state.error && process.env.NODE_ENV === 'development' && (
+            {this.state.error && process.env.NODE_ENV === "development" && (
               <details className="mb-4 text-left">
                 <summary className="cursor-pointer text-sm text-gray-500 mb-2">
                   Error details (development only)
@@ -59,18 +61,16 @@ export class ErrorBoundary extends Component<Props, State> {
               </details>
             )}
             <div className="flex gap-3 justify-center">
-              <button
-                onClick={this.handleReset}
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-700 hover:from-blue-700 hover:via-indigo-700 hover:to-slate-800 border border-blue-500/50 rounded-lg shadow-lg shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 transition-all duration-200"
-              >
+              <Button onClick={this.handleReset} variant="primary" size="md">
                 Try Again
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+                variant="secondary"
+                size="md"
               >
                 Refresh Page
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -80,4 +80,3 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-

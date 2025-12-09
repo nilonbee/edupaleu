@@ -51,6 +51,8 @@ const persistConfig = {
 import authReducer from "@/state/authSlice";
 import applicationReducer from "@/state/applicationSlice"; // Import application slice
 import { applicationApi } from "@/state/applicationApi"; // Import application API
+import { userApi } from "@/state/userApi"; // Import user API
+import { enquiryApi } from "@/state/enquiryApi"; // Import enquiry API
 
 const rootReducer = combineReducers({
   global: globalReducer,
@@ -58,6 +60,8 @@ const rootReducer = combineReducers({
   application: applicationReducer, // Add application reducer
   [api.reducerPath]: api.reducer,
   [applicationApi.reducerPath]: applicationApi.reducer, // Add application API
+  [userApi.reducerPath]: userApi.reducer, // Add user API
+  [enquiryApi.reducerPath]: enquiryApi.reducer, // Add enquiry API
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -73,7 +77,9 @@ export const makeStore = () => {
         },
       })
         .concat(api.middleware)
-        .concat(applicationApi.middleware), // Add application API middleware
+        .concat(applicationApi.middleware) // Add application API middleware
+        .concat(userApi.middleware) // Add user API middleware
+        .concat(enquiryApi.middleware), // Add enquiry API middleware
   });
 };
 

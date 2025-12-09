@@ -15,8 +15,11 @@ export const ALLOWED_FILE_TYPES = [
 // Maximum file size (10MB)
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-// Maximum file size for marriage certificates (5MB)
-export const MAX_MARRIAGE_CERT_SIZE = 5 * 1024 * 1024;
+// Maximum file size for marriage certificates (20MB)
+export const MAX_MARRIAGE_CERT_SIZE = 20 * 1024 * 1024;
+
+// Maximum file size for display pictures (10MB)
+export const MAX_DISPLAY_PICTURE_SIZE = 10 * 1024 * 1024;
 
 /**
  * Sanitize filename to prevent path traversal attacks

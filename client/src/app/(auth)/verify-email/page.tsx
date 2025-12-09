@@ -87,7 +87,7 @@ export default function VerifyEmail() {
             <Button
               as="link"
               href="/login"
-              variant="gradient"
+              variant="primary"
               size="md"
             >
               Go to Login
@@ -124,7 +124,7 @@ export default function VerifyEmail() {
         <Button
           as="link"
           href="/login"
-          variant="gradient"
+          variant="primary"
           size="md"
         >
           Continue to Login

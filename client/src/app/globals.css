@@ -15,8 +15,15 @@ body,
   height: 100%;
   width: 100%;
   @apply text-sm;
-  @apply bg-gray-50;
-  @apply text-gray-900;
+  @apply bg-gray-50 dark:bg-gray-900;
+  @apply text-gray-900 dark:text-gray-50;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer base {
+  :root {
+    --font-poppins: 'Poppins', sans-serif;
+  }
 }
 
 @media (min-width: 768px) {
@@ -31,32 +38,44 @@ body,
   }
 }
 
-/* Custom Scrollbar Styles - Theme Gradient */
+/* Custom Scrollbar Styles - ImageKit Theme */
 .scrollbar-theme::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .scrollbar-theme::-webkit-scrollbar-track {
-  background: rgb(30 41 59 / 0.5);
+  background: rgb(243 244 246 / 0.5);
   border-radius: 4px;
 }
 
+.dark .scrollbar-theme::-webkit-scrollbar-track {
+  background: rgb(31 41 55 / 0.5);
+}
+
 .scrollbar-theme::-webkit-scrollbar-thumb {
-  background: rgb(34 211 238 / 0.3);
+  background: rgb(59 130 246 / 0.3);
   border-radius: 4px;
 }
 
 .scrollbar-theme::-webkit-scrollbar-thumb:hover {
-  background: rgb(34 211 238 / 0.5);
+  background: rgb(59 130 246 / 0.5);
 }
 
 .scrollbar-theme::-webkit-scrollbar-corner {
-  background: rgb(30 41 59 / 0.5);
+  background: rgb(243 244 246 / 0.5);
+}
+
+.dark .scrollbar-theme::-webkit-scrollbar-corner {
+  background: rgb(31 41 55 / 0.5);
 }
 
 /* Firefox scrollbar */
 .scrollbar-theme {
   scrollbar-width: thin;
-  scrollbar-color: rgb(34 211 238 / 0.3) rgb(30 41 59 / 0.5);
+  scrollbar-color: rgb(59 130 246 / 0.3) rgb(243 244 246 / 0.5);
+}
+
+.dark .scrollbar-theme {
+  scrollbar-color: rgb(59 130 246 / 0.3) rgb(31 41 55 / 0.5);
 }

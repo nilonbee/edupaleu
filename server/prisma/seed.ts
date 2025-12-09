@@ -16,6 +16,7 @@ async function deleteAllData() {
     "Application",
     "AcademicQualification",
     "Student",
+    "AuthToken",
     "RefreshToken",
 
     // Business tables - child tables first
@@ -30,7 +31,7 @@ async function deleteAllData() {
     "ExpenseSummary",
 
     // Independent tables LAST (no foreign keys or referenced by others)
-    "User",           // ← This is "User" not "user"
+    // "User",           // REMOVED: First registered user should be admin
     "University",
     "Country",
     "ApplicationStatus",
@@ -70,7 +71,7 @@ async function main() {
     "userRoles.json",        // Role (independent)
     "applicationStatus.json", // ApplicationStatus (independent)
     "countries.json",        // Country (independent)
-    "users.json",            // User (needs Role)
+    // "users.json",            // User (needs Role) - REMOVED: First registered user should be admin
     "universities.json",     // University (needs Country)
     "student.json",          // Student (needs User)
     "application.json",      // Application (needs Student, University, User, ApplicationStatus)
@@ -108,7 +109,7 @@ async function main() {
           'userRoles': 'Role',
           'applicationStatus': 'ApplicationStatus',
           'countries': 'Country',
-          'users': 'User',
+          // 'users': 'User',  // REMOVED: First registered user should be admin
           'universities': 'University',
           'student': 'Student',
           'application': 'Application',
@@ -136,12 +137,38 @@ async function main() {
         }
 
         if (jsonData.length > 0) {
+          // Special handling for Application: add firstName and lastName from Student if studentId exists
+          let processedData = jsonData;
+          if (prismaModelName === 'Application') {
+            // Fetch all students to map IDs to names
+            const students = await prisma.student.findMany({
+              select: { id: true, firstName: true, lastName: true }
+            });
+            const studentMap = new Map(students.map(s => [s.id, { firstName: s.firstName, lastName: s.lastName }]));
+            
+            processedData = jsonData.map((app: any) => {
+              if (app.studentId && studentMap.has(app.studentId)) {
+                const student = studentMap.get(app.studentId)!;
+                return {
+                  ...app,
+                  firstName: app.firstName || student.firstName,
+                  lastName: app.lastName || student.lastName,
+                };
+              }
+              // If no studentId but has firstName/lastName, use them; otherwise throw error
+              if (!app.firstName || !app.lastName) {
+                throw new Error(`Application ${app.applicationRef} requires firstName and lastName`);
+              }
+              return app;
+            });
+          }
+          
           // Use createMany for better performance
           await model.createMany({
-            data: jsonData,
+            data: processedData,
             skipDuplicates: true,
           });
-          console.log(`✅ Seeded ${prismaModelName} with ${jsonData.length} records`);
+          console.log(`✅ Seeded ${prismaModelName} with ${processedData.length} records`);
         } else {
           console.log(`⚠️  No data in ${fileName}`);
         }
@@ -158,7 +185,7 @@ async function main() {
     // Maps table name to its primary key column name
     const tableSequences: { [table: string]: string } = {
       'Role': 'id',
-      'User': 'id',
+      // 'User': 'id',  // REMOVED: First registered user should be admin
       'Country': 'id',
       'University': 'id',
       'Student': 'id',

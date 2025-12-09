@@ -78,13 +78,22 @@ export const CardRecentApplications = () => {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {/* Student Avatar */}
                   <div className="relative flex-shrink-0">
-                    <Image
-                      src={`${application.student.displayPicture}`}
-                      alt={`${application.student.firstName} ${application.student.lastName}`}
-                      width={48}
-                      height={48}
-                      className="rounded-lg w-12 h-12 border flex-shrink-0"
-                    />
+                    {application.student?.displayPicture ? (
+                      <Image
+                        src={application.student.displayPicture}
+                        alt={`${application.student.firstName} ${application.student.lastName}`}
+                        width={48}
+                        height={48}
+                        className="rounded-lg w-12 h-12 border flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="rounded-lg w-12 h-12 border flex-shrink-0 bg-primary-500 flex items-center justify-center text-white text-sm font-bold">
+                        {application.student?.firstName?.[0]?.toUpperCase() || 
+                         application.student?.lastName?.[0]?.toUpperCase() || 
+                         application.student?.email?.[0]?.toUpperCase() || 
+                         "U"}
+                      </div>
+                    )}
                     <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm">
                       <FileText className="w-3 h-3 text-blue-500" />
                     </div>

@@ -9,6 +9,7 @@ import {
 import { AcademicQualification } from "@/types/applications";
 import { showToast } from "@/utils/toast";
 import { logger } from "@/utils/logger";
+import Button from "@/app/(components)/Button";
 
 export const AcademicQualifications: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -255,7 +256,7 @@ export const AcademicQualifications: React.FC = () => {
       </p>
 
       {/* Qualification Form */}
-      <div className="bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-800 dark:to-gray-900 p-6 rounded-lg mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 p-6 rounded-lg mb-6 border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>
           {/* Using div instead of form to prevent nested form submission issues */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -397,19 +398,20 @@ export const AcademicQualifications: React.FC = () => {
           </div>
 
           <div className="flex gap-3">
-            <button
+            <Button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 handleSubmit();
               }}
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+              variant="primary"
+              size="md"
             >
               {editingIndex !== null
                 ? "Update Qualification"
                 : "Add Qualification"}
-            </button>
+            </Button>
             {editingIndex !== null && (
               <button
                 type="button"
@@ -443,7 +445,7 @@ export const AcademicQualifications: React.FC = () => {
             {academicQualifications.map((qual, index) => (
               <div
                 key={`qual-${qual.id || index}-${renderKey}`}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900 shadow-sm hover:shadow-md transition-shadow"
+                className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">

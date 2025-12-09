@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/redux';
 import { resetApplication, setDocumentS3Url } from '@/state/applicationSlice';
 import { useBatchUpload } from '@/hooks/batchUpload';
-import { useGetUniversitiesQuery } from '@/state/api';
 import { cleanupSessionStorage, clearAllSessionFiles } from '@/utils/getFileFromSessionStorage';
 import { CreateApplicationRequest, UpdateApplicationRequest } from '@/types/applications';
 import { logger } from '@/utils/logger';
@@ -25,21 +24,16 @@ export const useApplicationSubmission = ({
   const dispatch = useAppDispatch();
   const {
     student,
-    selectedUniversity,
     academicQualifications,
     documents,
     maritalStatus,
     marriageCertificate,
     intendedPrograms,
+    enquiryId,
   } = useAppSelector((state) => state.application);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { batchUpload } = useBatchUpload();
-  const { data: universities } = useGetUniversitiesQuery();
-
-  const uni = universities?.find(
-    (u) => u.id.toString() === selectedUniversity?.id?.toString()
-  ) || selectedUniversity;
 
   const prepareFilesForUpload = () => {
     const filesToUpload: Array<{
@@ -88,32 +82,6 @@ export const useApplicationSubmission = ({
   };
 
   const prepareApplicationData = (uploadResults: any[]): CreateApplicationRequest | UpdateApplicationRequest => {
-    // Ensure university has required fields - handle both API structures
-    const universityData = uni || selectedUniversity;
-    if (!universityData) {
-      throw new Error('University is required');
-    }
-
-    // Extract countryId from either structure (countryId field or country.id)
-    const countryId = (universityData as any).countryId ||
-      ((universityData as any).country?.id) ||
-      (selectedUniversity as any)?.countryId ||
-      undefined;
-
-    // Validate that countryId exists and is a valid number
-    if (countryId === undefined || countryId === null || countryId === 0) {
-      throw new Error('University countryId is required');
-    }
-
-    const university = {
-      id: universityData.id,
-      name: universityData.name,
-      countryId: countryId,
-      website: (universityData as any).website,
-      ranking: (universityData as any).ranking,
-      tuitionFeeRange: (universityData as any).tuitionFeeRange || (universityData as any).tuition_fee_range,
-    };
-
     // Ensure academic qualifications preserve IDs if they exist
     const academicQualificationsToSubmit = (academicQualifications || []).map((qual) => ({
       ...(qual.id !== undefined && qual.id !== null ? { id: qual.id } : {}),
@@ -138,7 +106,6 @@ export const useApplicationSubmission = ({
 
     const baseData = {
       student: student!,
-      university: university,
       academicQualifications: academicQualificationsToSubmit,
       documents: documents.map((doc) => {
         const uploadResult = uploadResults.find(
@@ -167,6 +134,7 @@ export const useApplicationSubmission = ({
         }
         : undefined,
       intendedPrograms,
+      ...(enquiryId && { enquiryId: enquiryId.toString() }),
     };
 
     if (mode === 'edit' && applicationId) {
@@ -183,7 +151,7 @@ export const useApplicationSubmission = ({
     createMutation: (data: CreateApplicationRequest) => Promise<any>,
     updateMutation?: (data: UpdateApplicationRequest) => Promise<any>
   ): Promise<any> => {
-    if (!student || !selectedUniversity || !uni) {
+    if (!student) {
       throw new Error('Missing required application data');
     }
 
@@ -286,7 +254,7 @@ export const useApplicationSubmission = ({
   return {
     isSubmitting,
     submitApplication,
-    canSubmit: !!(student && selectedUniversity && selectedUniversity.id && uni),
+    canSubmit: !!student,
   };
 };
 

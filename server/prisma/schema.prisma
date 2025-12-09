@@ -95,17 +95,18 @@ model Role {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique @db.VarChar(255)
-  passwordHash String    @db.VarChar(255)
-  firstName    String    @db.VarChar(100)
-  lastName     String    @db.VarChar(100)
-  roleId       Int
-  phone        String?   @db.VarChar(20)
-  isActive     Boolean   @default(true)
-  lastLogin    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @default(now())
+  id             Int       @id @default(autoincrement())
+  email          String    @unique @db.VarChar(255)
+  passwordHash   String    @db.VarChar(255)
+  firstName      String    @db.VarChar(100)
+  lastName       String    @db.VarChar(100)
+  roleId         Int
+  phone          String?   @db.VarChar(20)
+  isActive       Boolean   @default(true)
+  lastLogin      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+  displayPicture String?   @db.VarChar(500)
 
   // Authentication fields
   verificationToken           String?   @db.VarChar(255)
@@ -114,14 +115,22 @@ model User {
   passwordToken               String?   @db.VarChar(255)
   passwordTokenExpirationDate DateTime?
 
-  role                 Role                       @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  refreshTokens        RefreshToken[]
-  authTokens           AuthToken[]
-  studentsCreated      Student[]                  @relation("StudentCreatedBy")
-  applicationsAssigned Application[]              @relation("ApplicationAssignedAgent")
-  applicationsCreated  Application[]              @relation("ApplicationCreatedBy")
-  documentsUploaded    ApplicationDocument[]      @relation("DocumentUploadedBy")
-  communications       ApplicationCommunication[]
+  // Invite fields
+  inviteToken               String?   @db.VarChar(255)
+  inviteTokenExpirationDate DateTime?
+  mustChangePassword        Boolean   @default(false)
+
+  role                        Role                       @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  refreshTokens               RefreshToken[]
+  authTokens                  AuthToken[]
+  studentsCreated             Student[]                  @relation("StudentCreatedBy")
+  applicationsAssignedAsAgent Application[]              @relation("ApplicationAssignedAgent")
+  documentsUploaded           ApplicationDocument[]      @relation("DocumentUploadedBy")
+  communications              ApplicationCommunication[]
+  enquiriesAssigned           Enquiry[]                  @relation("EnquiryAssignedTo")
+  applicationsAssignedTo      Application[]              @relation("ApplicationAssignedTo")
+
+  @@index([inviteToken])
 }
 
 model RefreshToken {
@@ -187,33 +196,33 @@ model University {
 }
 
 model Student {
-  id                      Int                     @id @default(autoincrement())
-  firstName               String                  @db.VarChar(100)
-  lastName                String                  @db.VarChar(100)
+  id                      Int              @id @default(autoincrement())
+  firstName               String           @db.VarChar(100)
+  lastName                String?          @db.VarChar(100)
   dateOfBirth             DateTime
   gender                  Gender
-  email                   String                  @unique @db.VarChar(255)
-  phone                   String?                 @db.VarChar(20)
-  nationality             String?                 @db.VarChar(100)
-  passportNumber          String?                 @unique @db.VarChar(50)
+  email                   String           @unique @db.VarChar(255)
+  phone                   String?          @db.VarChar(20)
+  nationality             String?          @db.VarChar(100)
+  passportNumber          String?          @unique @db.VarChar(50)
   displayPicture          String?
   passportExpiry          DateTime?
   address                 String?
-  city                    String?                 @db.VarChar(100)
-  state                   String?                 @db.VarChar(100)
-  zipCode                 String?                 @db.VarChar(20)
-  emergencyContactName    String?                 @db.VarChar(200)
-  emergencyContactPhone   String?                 @db.VarChar(20)
-  hasEnglishTest          Boolean                 @default(false)
-  englishTestType         EnglishTestType?        @default(none)
-  englishTestScore        String?                 @db.VarChar(50)
+  city                    String?          @db.VarChar(100)
+  state                   String?          @db.VarChar(100)
+  zipCode                 String?          @db.VarChar(20)
+  emergencyContactName    String?          @db.VarChar(200)
+  emergencyContactPhone   String?          @db.VarChar(20)
+  hasEnglishTest          Boolean          @default(false)
+  englishTestType         EnglishTestType? @default(none)
+  englishTestScore        String?          @db.VarChar(50)
   englishTestDate         DateTime?
-  createdBy               Int
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @default(now())
-  maritalStatus           String?                 @db.VarChar(20)
-  marriageCertificatePath String?                 @db.VarChar(500)
-  createdByUser           User?                   @relation("StudentCreatedBy", fields: [createdBy], references: [id])
+  createdBy               Int?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @default(now())
+  maritalStatus           String?          @db.VarChar(20)
+  marriageCertificatePath String?          @db.VarChar(500)
+  createdByUser           User?            @relation("StudentCreatedBy", fields: [createdBy], references: [id])
   applications            Application[]
 
   @@index([createdBy])
@@ -266,10 +275,36 @@ model IntendedProgram {
   @@index([applicationId])
 }
 
+model Enquiry {
+  id                    Int      @id @default(autoincrement())
+  firstName             String   @db.VarChar(100)
+  lastName              String?  @db.VarChar(100)
+  email                 String?  @db.VarChar(255)
+  phone                 String   @db.VarChar(20)
+  cvDocument            String?  @db.VarChar(500)
+  firstFollowUpRemarks  String?  @db.Text
+  secondFollowUpRemarks String?  @db.Text
+  thirdFollowUpRemarks  String?  @db.Text
+  remarks               String?  @db.Text
+  createdBy             String?  @db.VarChar(255) // userName
+  assignedToId          Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  assignedTo   User?         @relation("EnquiryAssignedTo", fields: [assignedToId], references: [id])
+  applications Application[] @relation("ApplicationFromEnquiry")
+
+  @@index([assignedToId])
+  @@index([email])
+  @@index([createdAt])
+}
+
 model Application {
   id                  Int       @id @default(autoincrement())
   applicationRef      String    @unique @db.VarChar(100)
-  studentId           Int
+  enquiryId           Int?
+  firstName           String    @db.VarChar(100)
+  lastName            String    @db.VarChar(100)
   universityId        Int
   intendedProgram     String    @db.VarChar(255)
   intakeYear          Int
@@ -281,25 +316,30 @@ model Application {
   submissionDate      DateTime?
   decisionDate        DateTime?
   notes               String?
-  createdBy           Int?
+  remarks             String?   @db.Text
+  createdBy           String?   @db.VarChar(255) // userName
+  assignedToId        Int?
   createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  student                Student                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enquiry                Enquiry?                   @relation("ApplicationFromEnquiry", fields: [enquiryId], references: [id])
   university             University                 @relation(fields: [universityId], references: [id], onDelete: Restrict)
   applicationStatus      ApplicationStatus?         @relation(fields: [applicationStatusId], references: [id])
   assignedAgent          User?                      @relation("ApplicationAssignedAgent", fields: [assignedAgentId], references: [id])
-  createdByUser          User?                      @relation("ApplicationCreatedBy", fields: [createdBy], references: [id])
+  assignedTo             User?                      @relation("ApplicationAssignedTo", fields: [assignedToId], references: [id])
   documents              ApplicationDocument[]
   communications         ApplicationCommunication[]
   intendedPrograms       IntendedProgram[]
   academicQualifications AcademicQualification[]
+  student                Student?                   @relation(fields: [studentId], references: [id])
+  studentId              Int?
 
-  @@index([studentId])
+  @@index([enquiryId])
   @@index([universityId])
   @@index([applicationStatusId])
   @@index([assignedAgentId])
-  @@index([createdBy])
+  @@index([assignedToId])
+  @@index([createdAt])
 }
 
 model ApplicationDocument {

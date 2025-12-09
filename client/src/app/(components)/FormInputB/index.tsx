@@ -10,6 +10,7 @@ interface FormInputBProps {
   options?: { value: string; label: string }[];
   className?: string;
   onChange?: (value: string) => void;
+  disabled?: boolean;
 }
 
 export const FormInputB: React.FC<FormInputBProps> = ({
@@ -21,6 +22,7 @@ export const FormInputB: React.FC<FormInputBProps> = ({
   options,
   className = "",
   onChange,
+  disabled = false,
 }) => {
   const {
     register,
@@ -46,10 +48,11 @@ export const FormInputB: React.FC<FormInputBProps> = ({
       id: name,
       placeholder,
       onChange: handleInputChange,
+      disabled,
       style: { color: "black" }, // Move style to commonProps
       className: `w-full px-3 py-2 text-sm border rounded-lg shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
         error ? "border-red-500 focus:ring-red-500" : "border-slate-300"
-      }`,
+      } ${disabled ? "bg-gray-100 cursor-not-allowed opacity-60" : ""}`,
     };
 
     switch (type) {

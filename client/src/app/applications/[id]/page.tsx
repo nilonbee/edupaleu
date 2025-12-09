@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGetApplicationQuery } from "@/state/applicationApi";
 import { ApplicationViewSkeleton } from "@/app/(components)/LoadingSkeleton/ApplicationSkeleton";
+import Button from "@/app/(components)/Button";
 
 const ViewApplicationPage = () => {
   const params = useParams();
@@ -20,14 +21,13 @@ const ViewApplicationPage = () => {
 
   if (!applicationId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
           <p className="text-red-600 mb-4">Invalid application ID</p>
-          <Link
-            href="/applications"
-            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-700 hover:from-blue-700 hover:via-indigo-700 hover:to-slate-800 border border-blue-500/50 rounded-lg shadow-lg shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 transition-all duration-200"
-          >
-            Back to Applications
+          <Link href="/applications">
+            <Button variant="primary" size="md">
+              Back to Applications
+            </Button>
           </Link>
         </div>
       </div>
@@ -40,14 +40,13 @@ const ViewApplicationPage = () => {
 
   if (error || !application) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
           <p className="text-red-600 mb-4">Error loading application</p>
-          <Link
-            href="/applications"
-            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-700 hover:from-blue-700 hover:via-indigo-700 hover:to-slate-800 border border-blue-500/50 rounded-lg shadow-lg shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 transition-all duration-200"
-          >
-            Back to Applications
+          <Link href="/applications">
+            <Button variant="primary" size="md">
+              Back to Applications
+            </Button>
           </Link>
         </div>
       </div>
@@ -80,7 +79,7 @@ const ViewApplicationPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="max-w-5xl mx-auto">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between items-center mb-6">
           <Link
@@ -137,27 +136,23 @@ const ViewApplicationPage = () => {
           <h2 className="text-xl font-bold text-gray-800 mb-4">
             Student Information
           </h2>
-          {appData.student && (
+          {appData.student ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-500">Full Name</p>
-                <p className="font-medium">
-                  {appData.student.firstName} {appData.student.lastName}
-                </p>
+                <p className="text-sm text-gray-500">First Name</p>
+                <p className="font-medium">{appData.student.firstName || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Last Name</p>
+                <p className="font-medium">{appData.student.lastName || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium">{appData.student.email}</p>
+                <p className="font-medium">{appData.student.email || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Phone</p>
                 <p className="font-medium">{appData.student.phone || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Nationality</p>
-                <p className="font-medium">
-                  {appData.student.nationality || "N/A"}
-                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Date of Birth</p>
@@ -167,9 +162,63 @@ const ViewApplicationPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Gender</p>
-                <p className="font-medium">{appData.student.gender}</p>
+                <p className="font-medium">{appData.student.gender || "N/A"}</p>
               </div>
+              <div>
+                <p className="text-sm text-gray-500">Nationality</p>
+                <p className="font-medium">
+                  {appData.student.nationality || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Passport Number</p>
+                <p className="font-medium">
+                  {appData.student.passportNumber || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Passport Expiry</p>
+                <p className="font-medium">
+                  {formatDate(appData.student.passportExpiry)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Address</p>
+                <p className="font-medium">{appData.student.address || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">City</p>
+                <p className="font-medium">{appData.student.city || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">State</p>
+                <p className="font-medium">{appData.student.state || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">ZIP Code</p>
+                <p className="font-medium">{appData.student.zipCode || "N/A"}</p>
+              </div>
+              {appData.student.hasEnglishTest && (
+                <>
+                  <div>
+                    <p className="text-sm text-gray-500">English Test Type</p>
+                    <p className="font-medium">{appData.student.englishTestType || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">English Test Score</p>
+                    <p className="font-medium">{appData.student.englishTestScore || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">English Test Date</p>
+                    <p className="font-medium">
+                      {formatDate(appData.student.englishTestDate)}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
+          ) : (
+            <p className="text-gray-500">No student information available</p>
           )}
         </div>
 
