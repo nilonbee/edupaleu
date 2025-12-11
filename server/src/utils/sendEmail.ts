@@ -17,16 +17,26 @@ export const sendEmail = async ({
         console.error('SENDGRID_API_KEY is not set. Email sending skipped.');
         return null;
       }
+
+      // Set API key (SendGrid caches this, but setting it multiple times is safe)
       sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-      // use sengrid for production
+
+      // Use verified sender email from SendGrid
+      // IMPORTANT: The 'from' email must be verified in your SendGrid account
+      // You can use either:
+      // 1. A verified single sender: 'verified-email@yourdomain.com'
+      // 2. Or use the format: { name: 'Display Name', email: 'verified-email@yourdomain.com' }
       const msg = {
         to,
-        from: 'noreply@edupaleu.com',
+        from: 'nilonbee@gmail.com', // Use verified email
         subject,
         html,
       };
 
-      return await sgMail.send(msg);
+      console.log('Sending email via SendGrid to:', to);
+      const result = await sgMail.send(msg);
+      console.log('Email sent successfully:', result[0]?.statusCode);
+      return result;
     } else {
       // Use Ethereal in development
       const transporter = nodemailer.createTransport(nodemailerConfig);
@@ -38,9 +48,20 @@ export const sendEmail = async ({
       });
       return result;
     }
-  } catch (error) {
-    // Log error but don't throw - allow registration to succeed even if email fails
-    console.error('Failed to send email:', error);
+  } catch (error: any) {
+    // Log detailed error for debugging
+    console.error('Failed to send email:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.body || error.response,
+      statusCode: error.response?.statusCode,
+    });
+
+    // Log specific SendGrid errors
+    if (error.response?.body) {
+      console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
+    }
+
     return null;
   }
 };
