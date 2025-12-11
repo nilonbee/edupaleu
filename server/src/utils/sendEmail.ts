@@ -21,10 +21,7 @@ export const sendEmail = async ({
       // use sengrid for production
       const msg = {
         to,
-        from: {
-          name: 'Edupaleu Consultants',
-          email: 'noreply@edupal.com'
-        },
+        from: 'noreply@edupaleu.com',
         subject,
         html,
       };
