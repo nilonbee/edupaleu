@@ -15,74 +15,85 @@ import { createHash } from '../utils/createHash';
 import prisma from '../lib/prisma';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
-    const { email, firstName, lastName, password } = req.body;
+    try {
+        const { email, firstName, lastName, password } = req.body;
 
-    if (!email || !firstName || !lastName || !password) {
-        throw new BadRequestError('Please provide all required fields');
-    }
+        if (!email || !firstName || !lastName || !password) {
+            throw new BadRequestError('Please provide all required fields');
+        }
 
-    const emailAlreadyExists = await prisma.user.findUnique({
-        where: { email },
-    });
+        const emailAlreadyExists = await prisma.user.findUnique({
+            where: { email },
+        });
 
-    if (emailAlreadyExists) {
-        throw new BadRequestError('Email already exists');
-    }
+        if (emailAlreadyExists) {
+            throw new BadRequestError('Email already exists');
+        }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
 
-    // Check if this is the first user (make them admin)
-    const userCount = await prisma.user.count();
-    const roleName = userCount === 0 ? 'admin' : 'user';
+        // Check if this is the first user (make them admin)
+        const userCount = await prisma.user.count();
+        const roleName = userCount === 0 ? 'admin' : 'user';
 
-    // Get or create the role
-    let userRole = await prisma.role.findFirst({
-        where: { name: roleName },
-    });
+        // Get or create the role
+        let userRole = await prisma.role.findFirst({
+            where: { name: roleName },
+        });
 
-    if (!userRole) {
-        // Create the role if it doesn't exist
-        userRole = await prisma.role.create({
+        if (!userRole) {
+            // Create the role if it doesn't exist
+            userRole = await prisma.role.create({
+                data: {
+                    name: roleName,
+                    description: `${roleName} role`,
+                    permissions: {},
+                    isActive: true,
+                },
+            });
+        }
+
+        const verificationToken = crypto.randomBytes(40).toString('hex');
+
+        const user = await prisma.user.create({
             data: {
-                name: roleName,
-                description: `${roleName} role`,
-                permissions: {},
-                isActive: true,
+                email,
+                firstName,
+                lastName,
+                passwordHash,
+                roleId: userRole.id,
+                verificationToken,
+                isVerified: false,
+            },
+            include: {
+                role: true,
             },
         });
+
+        const origin = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+        // Send verification email (non-blocking - don't fail registration if email fails)
+        sendVerificationEmail({
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            verificationToken: user.verificationToken!,
+            origin,
+        }).catch((error) => {
+            // Log error but don't fail the registration
+            console.error('Failed to send verification email:', error);
+        });
+
+        res.status(StatusCodes.CREATED).json({
+            msg: 'Success! Please check your email to verify account',
+        });
+    } catch (error: any) {
+        // Log the full error for debugging
+        console.error('Registration error:', error);
+        // Re-throw to let error handler middleware handle it
+        throw error;
     }
-
-    const verificationToken = crypto.randomBytes(40).toString('hex');
-
-    const user = await prisma.user.create({
-        data: {
-            email,
-            firstName,
-            lastName,
-            passwordHash,
-            roleId: userRole.id,
-            verificationToken,
-            isVerified: false,
-        },
-        include: {
-            role: true,
-        },
-    });
-
-    const origin = process.env.FRONTEND_URL || 'http://localhost:3000';
-
-    await sendVerificationEmail({
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        verificationToken: user.verificationToken!,
-        origin,
-    });
-
-    res.status(StatusCodes.CREATED).json({
-        msg: 'Success! Please check your email to verify account',
-    });
 };
 
 export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
