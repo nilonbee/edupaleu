@@ -84,34 +84,54 @@ const EditApplicationPage = () => {
         );
 
         // Fetch marriage certificate if exists
-        // Note: marriageCertificatePath is stored in student table but not always included in response
+        // Check both documents array and student.marriageCertificatePath
         let marriageCert: ApplicationDocument | undefined = undefined;
         const studentForMarriageCert = appData.student as any;
-        const marriageCertPath =
-          studentForMarriageCert?.marriageCertificatePath;
-        if (marriageCertPath) {
-          try {
-            const { fetchS3Document } = await import("@/utils/fetchS3Document");
-            const fileId = await fetchS3Document(
-              marriageCertPath,
-              "marriage-certificate.pdf",
-              "MARRIAGE_CERTIFICATE"
-            );
-            marriageCert = {
-              documentType: "MARRIAGE_CERTIFICATE",
-              fileName: "marriage-certificate.pdf",
-              filePath: marriageCertPath,
-              url: marriageCertPath,
-              fileId: fileId || undefined,
-            } as ApplicationDocument;
-          } catch (error) {
-            logger.error("Error fetching marriage certificate:", error);
-            marriageCert = {
-              documentType: "MARRIAGE_CERTIFICATE",
-              fileName: "marriage-certificate.pdf",
-              filePath: marriageCertPath,
-              url: marriageCertPath,
-            } as ApplicationDocument;
+        
+        // First, check if marriage certificate exists in documents array
+        const marriageCertDoc = (appData.documents || []).find(
+          (doc) => doc.documentType === "MARRIAGE_CERTIFICATE"
+        );
+        
+        if (marriageCertDoc) {
+          // Marriage certificate found in documents array
+          const fileId = fileIdMap.get("MARRIAGE_CERTIFICATE");
+          marriageCert = {
+            documentType: "MARRIAGE_CERTIFICATE",
+            fileName: marriageCertDoc.fileName,
+            filePath: marriageCertDoc.filePath,
+            url: marriageCertDoc.filePath,
+            fileSize: marriageCertDoc.fileSize,
+            fileId: fileId || undefined,
+          } as ApplicationDocument;
+        } else {
+          // Fallback to checking student.marriageCertificatePath
+          const marriageCertPath =
+            studentForMarriageCert?.marriageCertificatePath;
+          if (marriageCertPath) {
+            try {
+              const { fetchS3Document } = await import("@/utils/fetchS3Document");
+              const fileId = await fetchS3Document(
+                marriageCertPath,
+                "marriage-certificate.pdf",
+                "MARRIAGE_CERTIFICATE"
+              );
+              marriageCert = {
+                documentType: "MARRIAGE_CERTIFICATE",
+                fileName: "marriage-certificate.pdf",
+                filePath: marriageCertPath,
+                url: marriageCertPath,
+                fileId: fileId || undefined,
+              } as ApplicationDocument;
+            } catch (error) {
+              logger.error("Error fetching marriage certificate:", error);
+              marriageCert = {
+                documentType: "MARRIAGE_CERTIFICATE",
+                fileName: "marriage-certificate.pdf",
+                filePath: marriageCertPath,
+                url: marriageCertPath,
+              } as ApplicationDocument;
+            }
           }
         }
 
@@ -229,17 +249,19 @@ const EditApplicationPage = () => {
               (appData.university as any).tuitionFeeRange,
           } as University,
           academicQualifications: transformedQualifications,
-          documents: (appData.documents || []).map((doc) => {
-            const fileId = fileIdMap.get(doc.documentType);
-            return {
-              documentType: doc.documentType,
-              fileName: doc.fileName,
-              filePath: doc.filePath,
-              fileSize: doc.fileSize,
-              url: doc.filePath, // S3 URL
-              fileId: fileId, // fileId from sessionStorage if fetched
-            } as ApplicationDocument;
-          }),
+          documents: (appData.documents || [])
+            .filter((doc) => doc.documentType !== "MARRIAGE_CERTIFICATE") // Exclude marriage certificate from regular documents
+            .map((doc) => {
+              const fileId = fileIdMap.get(doc.documentType);
+              return {
+                documentType: doc.documentType,
+                fileName: doc.fileName,
+                filePath: doc.filePath,
+                fileSize: doc.fileSize,
+                url: doc.filePath, // S3 URL
+                fileId: fileId, // fileId from sessionStorage if fetched
+              } as ApplicationDocument;
+            }),
           maritalStatus: (fullStudentData?.maritalStatus || "SINGLE") as
             | "SINGLE"
             | "MARRIED"
@@ -251,6 +273,7 @@ const EditApplicationPage = () => {
             programme: prog.programme,
             university: prog.university,
           })) as IntendedProgram[],
+          destinationCountryId: (appData as any).countryId || undefined,
         };
 
         dispatch(loadApplicationData(formData));

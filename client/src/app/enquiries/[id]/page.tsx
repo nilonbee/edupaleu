@@ -242,6 +242,7 @@ export default function ViewEnquiryPage() {
                   lastName: enquiry.lastName || "",
                   email: enquiry.email || "",
                   phone: enquiry.phone,
+                  countryId: enquiry.countryId,
                 })
               );
               router.push(`/applications/new?enquiry=${enquiryData}`);

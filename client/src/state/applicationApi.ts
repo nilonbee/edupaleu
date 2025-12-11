@@ -9,6 +9,7 @@ export interface Student {
     gender: 'MALE' | 'FEMALE' | 'OTHER';
     email: string;
     phone?: string;
+    secondPhone?: string;
     nationality?: string;
     passportNumber?: string;
     displayPicture?: string;
@@ -33,6 +34,7 @@ import { Application } from './api';
 export interface GetApplicationsParams {
     search?: string;
     status?: string | string[];
+    countryId?: number;
     sort_by?: string;
     order?: 'asc' | 'desc';
     page?: number;
@@ -140,7 +142,7 @@ const baseQueryWithFormData: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
     extraOptions
 ) => {
     const result = await baseQueryWithoutAuth(args, api, extraOptions);
-    
+
     // Handle 401 Unauthorized - clear auth state
     if (result.error && 'status' in result.error && result.error.status === 401) {
         const { clearUser } = await import('./authSlice');
@@ -148,7 +150,7 @@ const baseQueryWithFormData: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQ
         // Note: API state reset should be handled at the store level if needed
         // api.util is not available in baseQuery callback
     }
-    
+
     return result;
 };
 
@@ -173,7 +175,7 @@ export const applicationApi = createApi({
             query: (params) => {
                 const searchParams = new URLSearchParams();
                 const queryParams = params || {};
-                
+
                 if (queryParams.search) searchParams.append('search', queryParams.search);
                 if (queryParams.status) {
                     const statusArray = Array.isArray(queryParams.status) ? queryParams.status : [queryParams.status];
@@ -230,6 +232,48 @@ export const applicationApi = createApi({
                 'Application',
             ],
         }),
+        updateApplicationAssignedTo: builder.mutation<
+            { success: boolean; message: string; data: Application },
+            { applicationId: number; assignedToId: number | null }
+        >({
+            query: ({ applicationId, assignedToId }) => ({
+                url: `applications/${applicationId}/assigned-to`,
+                method: 'PATCH',
+                body: { assignedToId },
+            }),
+            invalidatesTags: (result, error, { applicationId }) => [
+                { type: 'Application', id: applicationId },
+                'Application',
+            ],
+        }),
+        updateApplicationAssignedAgent: builder.mutation<
+            { success: boolean; message: string; data: Application },
+            { applicationId: number; assignedAgentId: number | null }
+        >({
+            query: ({ applicationId, assignedAgentId }) => ({
+                url: `applications/${applicationId}/assigned-agent`,
+                method: 'PATCH',
+                body: { assignedAgentId },
+            }),
+            invalidatesTags: (result, error, { applicationId }) => [
+                { type: 'Application', id: applicationId },
+                'Application',
+            ],
+        }),
+        updateApplicationRegistered: builder.mutation<
+            { success: boolean; message: string; data: Application },
+            { applicationId: number; registered: boolean }
+        >({
+            query: ({ applicationId, registered }) => ({
+                url: `applications/${applicationId}/registered`,
+                method: 'PATCH',
+                body: { registered },
+            }),
+            invalidatesTags: (result, error, { applicationId }) => [
+                { type: 'Application', id: applicationId },
+                'Application',
+            ],
+        }),
         uploadDocument: builder.mutation<any, FormData>({
             query: (formData) => ({
                 url: 'file-upload/batch',
@@ -250,5 +294,8 @@ export const {
     useUpdateApplicationMutation,
     useDeleteApplicationMutation,
     useUpdateApplicationStatusMutation,
+    useUpdateApplicationAssignedToMutation,
+    useUpdateApplicationAssignedAgentMutation,
+    useUpdateApplicationRegisteredMutation,
     useUploadDocumentMutation,
 } = applicationApi;

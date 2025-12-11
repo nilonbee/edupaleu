@@ -13,12 +13,12 @@ const router = express.Router();
 router
     .route('/')
     .get(authenticateUser, getAllEnquiries)
-    .post(authenticateUser, authorizePermissions('admin', 'agent'), createEnquiry);
+    .post(authenticateUser, authorizePermissions('admin', 'agent', 'user'), createEnquiry);
 
 router
     .route('/:id')
     .get(authenticateUser, getSingleEnquiry)
-    .patch(authenticateUser, authorizePermissions('admin', 'agent'), updateEnquiry)
+    .patch(authenticateUser, authorizePermissions('admin', 'agent', 'user'), updateEnquiry)
     .delete(authenticateUser, authorizePermissions('admin'), deleteEnquiry);
 
 export default router;

@@ -1,13 +1,23 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
-import { IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
 import {
   MoreVert as MoreVertIcon,
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   SwapHoriz as SwapHorizIcon,
-} from '@mui/icons-material';
+  Person as PersonIcon,
+  Business as BusinessIcon,
+  CheckCircle as CheckCircleIcon,
+} from "@mui/icons-material";
+import { useAppSelector } from "@/app/redux";
 
 interface ActionsMenuProps {
   applicationId: number;
@@ -15,6 +25,9 @@ interface ActionsMenuProps {
   onEdit: () => void;
   onDelete: () => void;
   onChangeStatus: () => void;
+  onChangeAssignedTo: () => void;
+  onChangeAssignedAgent: () => void;
+  onChangeRegistered: () => void;
 }
 
 export const ActionsMenu: React.FC<ActionsMenuProps> = ({
@@ -23,9 +36,13 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onEdit,
   onDelete,
   onChangeStatus,
+  onChangeAssignedTo,
+  onChangeAssignedAgent,
+  onChangeRegistered,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const currentUser = useAppSelector((state) => state.auth.user);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -56,6 +73,21 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
     onChangeStatus();
   };
 
+  const handleChangeAssignedTo = () => {
+    handleClose();
+    onChangeAssignedTo();
+  };
+
+  const handleChangeAssignedAgent = () => {
+    handleClose();
+    onChangeAssignedAgent();
+  };
+
+  const handleChangeRegistered = () => {
+    handleClose();
+    onChangeRegistered();
+  };
+
   return (
     <>
       <IconButton
@@ -70,12 +102,12 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
         open={open}
         onClose={handleClose}
         anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
+          vertical: "bottom",
+          horizontal: "right",
         }}
         transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+          vertical: "top",
+          horizontal: "right",
         }}
       >
         <MenuItem onClick={handleView}>
@@ -96,15 +128,33 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           </ListItemIcon>
           <ListItemText>Change Status</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleDelete} className="text-red-600">
+        <MenuItem onClick={handleChangeAssignedTo}>
           <ListItemIcon>
-            <DeleteIcon fontSize="small" className="text-red-600" />
+            <PersonIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Delete</ListItemText>
+          <ListItemText>Change Handled By</ListItemText>
         </MenuItem>
+        <MenuItem onClick={handleChangeAssignedAgent}>
+          <ListItemIcon>
+            <BusinessIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Change Agent</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleChangeRegistered}>
+          <ListItemIcon>
+            <CheckCircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Change Registered</ListItemText>
+        </MenuItem>
+        {currentUser?.role === "admin" && (
+          <MenuItem onClick={handleDelete} className="text-red-600">
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" className="text-red-600" />
+            </ListItemIcon>
+            <ListItemText>Delete</ListItemText>
+          </MenuItem>
+        )}
       </Menu>
     </>
   );
 };
-
-

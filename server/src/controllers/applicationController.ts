@@ -9,6 +9,7 @@ export const getApplications = async (req: Request, res: Response) => {
         const {
             search,
             status,
+            countryId,
             sort_by = 'updatedAt',
             order = 'desc',
             page = '1',
@@ -42,7 +43,12 @@ export const getApplications = async (req: Request, res: Response) => {
             }
         }
 
-        // Global search - search across applicationRef, student name (direct or via student relation), university name, program
+        // Filter by countryId (application's direct country field)
+        if (countryId) {
+            where.countryId = parseInt(countryId as string, 10);
+        }
+
+        // Global search - search across applicationRef, student name (direct or via student relation), university name, program, country, status
         if (search) {
             const searchTerm = (search as string).trim();
             where.OR = [
@@ -61,7 +67,25 @@ export const getApplications = async (req: Request, res: Response) => {
                 },
                 {
                     university: {
-                        name: { contains: searchTerm, mode: 'insensitive' }
+                        OR: [
+                            { name: { contains: searchTerm, mode: 'insensitive' } },
+                            {
+                                country: {
+                                    OR: [
+                                        { name: { contains: searchTerm, mode: 'insensitive' } },
+                                        { code: { contains: searchTerm, mode: 'insensitive' } }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    country: {
+                        OR: [
+                            { name: { contains: searchTerm, mode: 'insensitive' } },
+                            { code: { contains: searchTerm, mode: 'insensitive' } }
+                        ]
                     }
                 },
                 {
@@ -71,6 +95,11 @@ export const getApplications = async (req: Request, res: Response) => {
                             { lastName: { contains: searchTerm, mode: 'insensitive' } },
                             { email: { contains: searchTerm, mode: 'insensitive' } }
                         ]
+                    }
+                },
+                {
+                    applicationStatus: {
+                        status: { contains: searchTerm, mode: 'insensitive' }
                     }
                 }
             ];
@@ -105,6 +134,7 @@ export const getApplications = async (req: Request, res: Response) => {
                         firstName: true,
                         lastName: true,
                         email: true,
+                        phone: true,
                         displayPicture: true,
                     }
                 },
@@ -124,14 +154,6 @@ export const getApplications = async (req: Request, res: Response) => {
                         email: true,
                     }
                 },
-                university: {
-                    select: {
-                        id: true,
-                        name: true,
-                        website: true,
-                        ranking: true,
-                    }
-                },
                 applicationStatus: {
                     select: {
                         id: true,
@@ -145,6 +167,21 @@ export const getApplications = async (req: Request, res: Response) => {
                         firstName: true,
                         lastName: true,
                         email: true,
+                    }
+                },
+                country: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                    }
+                },
+                university: {
+                    select: {
+                        id: true,
+                        name: true,
+                        website: true,
+                        ranking: true,
                     }
                 },
             }
@@ -185,7 +222,8 @@ export const createApplication = async (req: Request, res: Response) => {
             maritalStatus,
             marriageCertificate,
             intendedPrograms,
-            enquiryId
+            enquiryId,
+            countryId
         } = req.body;
 
         // Validate required fields
@@ -222,6 +260,18 @@ export const createApplication = async (req: Request, res: Response) => {
 
         // University ID is optional - use from request if provided, otherwise null (university is stored as string in intended programs)
         const universityId = university?.id || null;
+
+        // Get countryId from enquiry if not provided and enquiryId exists
+        let destinationCountryId = countryId ? parseInt(countryId, 10) : null;
+        if (!destinationCountryId && enquiryId) {
+            const enquiry = await prisma.enquiry.findUnique({
+                where: { id: parseInt(enquiryId, 10) },
+                select: { countryId: true }
+            });
+            if (enquiry?.countryId) {
+                destinationCountryId = enquiry.countryId;
+            }
+        }
 
         // Check if an application already exists for this enquiry
         if (enquiryId) {
@@ -348,6 +398,7 @@ export const createApplication = async (req: Request, res: Response) => {
                         gender: normalizedGender,
                         email: student.email.trim(),
                         phone: student.phone?.trim() || null,
+                        secondPhone: student.secondPhone?.trim() || null,
                         nationality: student.nationality?.trim() || null,
                         passportNumber: student.passportNumber?.trim() || null,
                         passportExpiry: student.passportExpiry ? (student.passportExpiry instanceof Date ? student.passportExpiry : new Date(student.passportExpiry)) : null,
@@ -381,6 +432,7 @@ export const createApplication = async (req: Request, res: Response) => {
                     applicationStatusId: 1, // Assuming 1 = PENDING
                     applicationFee: 0,
                     feePaid: false,
+                    countryId: destinationCountryId,
                     submissionDate: new Date(),
                     createdBy: currentUser.name || `${currentUser.firstName} ${currentUser.lastName}`,
                     assignedToId: currentUser.userId || null,
@@ -674,11 +726,37 @@ export const getApplication = async (req: Request, res: Response) => {
                 academicQualifications: {
                     orderBy: { createdAt: 'asc' }
                 },
-                university: true,
+                university: {
+                    include: {
+                        country: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            }
+                        }
+                    }
+                },
                 applicationStatus: true,
                 documents: true,
                 intendedPrograms: {
                     orderBy: { priority: 'asc' }
+                },
+                assignedTo: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    }
+                },
+                assignedAgent: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    }
                 }
             }
         });
@@ -715,6 +793,7 @@ export const getApplication = async (req: Request, res: Response) => {
             gender: application.student.gender || null,
             email: application.student.email,
             phone: application.student.phone || null,
+            secondPhone: (application.student as any).secondPhone || null,
             nationality: application.student.nationality || null,
             passportNumber: application.student.passportNumber || null,
             passportExpiry: application.student.passportExpiry ? application.student.passportExpiry.toISOString().split('T')[0] : null,
@@ -768,7 +847,11 @@ export const getApplication = async (req: Request, res: Response) => {
                 documents: application.documents,
                 intendedPrograms: application.intendedPrograms,
                 submissionDate: application.submissionDate,
-                updatedAt: application.updatedAt
+                updatedAt: application.updatedAt,
+                registered: application.registered ?? false,
+                assignedTo: application.assignedTo || null,
+                assignedAgent: application.assignedAgent || null,
+                countryId: application.countryId || null,
             }
         });
 
@@ -889,6 +972,7 @@ export const updateApplication = async (req: Request, res: Response) => {
                             gender: normalizedGender,
                             email: student.email.trim(),
                             phone: student.phone?.trim() || null,
+                            secondPhone: student.secondPhone?.trim() || null,
                             nationality: student.nationality?.trim() || null,
                             passportNumber: student.passportNumber?.trim() || null,
                             passportExpiry: student.passportExpiry ? (student.passportExpiry instanceof Date ? student.passportExpiry : new Date(student.passportExpiry)) : null,
@@ -939,6 +1023,7 @@ export const updateApplication = async (req: Request, res: Response) => {
                         gender: normalizedGender,
                         email: student.email.trim(),
                         phone: student.phone?.trim() || null,
+                        secondPhone: student.secondPhone?.trim() || null,
                         nationality: student.nationality?.trim() || null,
                         passportNumber: student.passportNumber?.trim() || null,
                         passportExpiry: student.passportExpiry ? (student.passportExpiry instanceof Date ? student.passportExpiry : new Date(student.passportExpiry)) : null,
@@ -1255,6 +1340,7 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
+        const currentUser = (req as any).user;
 
         if (!status) {
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -1263,9 +1349,18 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
             });
         }
 
-        // Check if application exists
+        // Check if application exists and get current status
         const application = await prisma.application.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(id) },
+            include: {
+                applicationStatus: {
+                    select: {
+                        id: true,
+                        status: true,
+                        description: true
+                    }
+                }
+            }
         });
 
         if (!application) {
@@ -1275,11 +1370,25 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
             });
         }
 
+        // Check if current status is "completed" and user is not admin
+        const currentStatus = application.applicationStatus?.status?.toLowerCase();
+        const isCompleted = currentStatus === 'completed';
+        const isAdmin = currentUser?.role === 'admin';
+        const newStatusLower = status.toLowerCase();
+
+        // Prevent non-admin users from changing status if it's already "completed"
+        if (isCompleted && !isAdmin) {
+            return res.status(StatusCodes.FORBIDDEN).json({
+                success: false,
+                message: "Cannot change status. This application is marked as completed. Only administrators can modify completed applications."
+            });
+        }
+
         // Find the status ID by status name
         const statusRecord = await prisma.applicationStatus.findFirst({
             where: {
                 status: {
-                    equals: status.toLowerCase(),
+                    equals: newStatusLower,
                     mode: 'insensitive'
                 }
             }
@@ -1324,6 +1433,177 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to update application status",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+export const updateApplicationAssignedTo = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { assignedToId } = req.body;
+
+        // Check if application exists
+        const application = await prisma.application.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!application) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                success: false,
+                message: "Application not found"
+            });
+        }
+
+        // Validate user exists if assignedToId is provided
+        if (assignedToId !== null && assignedToId !== undefined) {
+            const user = await prisma.user.findUnique({
+                where: { id: parseInt(assignedToId.toString(), 10) }
+            });
+
+            if (!user) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    success: false,
+                    message: `User with id ${assignedToId} not found`
+                });
+            }
+        }
+
+        // Update application assignedTo
+        const updatedApplication = await prisma.application.update({
+            where: { id: parseInt(id) },
+            data: {
+                assignedToId: assignedToId ? parseInt(assignedToId.toString(), 10) : null,
+                updatedAt: new Date()
+            },
+            include: {
+                assignedTo: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true
+                    }
+                }
+            }
+        });
+
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            message: "Application assigned to updated successfully",
+            data: updatedApplication
+        });
+    } catch (error: any) {
+        console.error('Error updating application assigned to:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Failed to update application assigned to",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+export const updateApplicationAssignedAgent = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { assignedAgentId } = req.body;
+
+        // Check if application exists
+        const application = await prisma.application.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!application) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                success: false,
+                message: "Application not found"
+            });
+        }
+
+        // Validate user exists if assignedAgentId is provided
+        if (assignedAgentId !== null && assignedAgentId !== undefined) {
+            const user = await prisma.user.findUnique({
+                where: { id: parseInt(assignedAgentId.toString(), 10) }
+            });
+
+            if (!user) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    success: false,
+                    message: `User with id ${assignedAgentId} not found`
+                });
+            }
+        }
+
+        // Update application assignedAgent
+        const updatedApplication = await prisma.application.update({
+            where: { id: parseInt(id) },
+            data: {
+                assignedAgentId: assignedAgentId ? parseInt(assignedAgentId.toString(), 10) : null,
+                updatedAt: new Date()
+            },
+            include: {
+                assignedAgent: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true
+                    }
+                }
+            }
+        });
+
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            message: "Application assigned agent updated successfully",
+            data: updatedApplication
+        });
+    } catch (error: any) {
+        console.error('Error updating application assigned agent:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Failed to update application assigned agent",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+export const updateApplicationRegistered = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { registered } = req.body;
+
+        // Check if application exists
+        const application = await prisma.application.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!application) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                success: false,
+                message: "Application not found"
+            });
+        }
+
+        // Update application registered status
+        const updatedApplication = await prisma.application.update({
+            where: { id: parseInt(id) },
+            data: {
+                registered: registered === true || registered === 'true',
+                updatedAt: new Date()
+            }
+        });
+
+        return res.status(StatusCodes.OK).json({
+            success: true,
+            message: "Application registered status updated successfully",
+            data: updatedApplication
+        });
+    } catch (error: any) {
+        console.error('Error updating application registered status:', error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Failed to update application registered status",
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

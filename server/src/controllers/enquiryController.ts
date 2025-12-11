@@ -18,6 +18,7 @@ export const getAllEnquiries = async (req: Request, res: Response): Promise<void
         sort_by = 'createdAt',
         order = 'desc',
         assignedTo,
+        countryId,
     } = req.query;
 
     const pageNum = parseInt(page as string, 10);
@@ -26,19 +27,32 @@ export const getAllEnquiries = async (req: Request, res: Response): Promise<void
 
     const where: any = {};
 
-    // Search by firstName, lastName, email, phone
+    // Search by firstName, lastName, email, phone, and country
     if (search) {
         where.OR = [
             { firstName: { contains: search as string, mode: 'insensitive' } },
             { lastName: { contains: search as string, mode: 'insensitive' } },
             { email: { contains: search as string, mode: 'insensitive' } },
             { phone: { contains: search as string, mode: 'insensitive' } },
+            {
+                country: {
+                    OR: [
+                        { name: { contains: search as string, mode: 'insensitive' } },
+                        { code: { contains: search as string, mode: 'insensitive' } }
+                    ]
+                }
+            }
         ];
     }
 
     // Filter by assignedTo
     if (assignedTo) {
         where.assignedToId = parseInt(assignedTo as string, 10);
+    }
+
+    // Filter by countryId
+    if (countryId) {
+        where.countryId = parseInt(countryId as string, 10);
     }
 
     const [enquiries, totalCount] = await Promise.all([
@@ -51,6 +65,13 @@ export const getAllEnquiries = async (req: Request, res: Response): Promise<void
                         firstName: true,
                         lastName: true,
                         email: true,
+                    },
+                },
+                country: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
                     },
                 },
             },
@@ -88,6 +109,13 @@ export const getSingleEnquiry = async (req: Request, res: Response): Promise<voi
                     firstName: true,
                     lastName: true,
                     email: true,
+                },
+            },
+            country: {
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
                 },
             },
             applications: {
@@ -129,10 +157,24 @@ export const createEnquiry = async (req: Request, res: Response): Promise<void> 
         thirdFollowUpRemarks,
         remarks,
         assignedToId,
+        countryId,
     } = req.body;
 
     if (!firstName || !phone) {
         throw new BadRequestError('firstName and phone are required fields');
+    }
+
+    if (!countryId) {
+        throw new BadRequestError('countryId is required');
+    }
+
+    // Validate country exists
+    const country = await prisma.country.findUnique({
+        where: { id: parseInt(countryId, 10) },
+    });
+
+    if (!country) {
+        throw new BadRequestError('Invalid countryId');
     }
 
     const enquiry = await prisma.enquiry.create({
@@ -148,6 +190,7 @@ export const createEnquiry = async (req: Request, res: Response): Promise<void> 
             remarks,
             createdBy: currentUser.name || `${currentUser.firstName} ${currentUser.lastName}`,
             assignedToId: assignedToId ? parseInt(assignedToId, 10) : null,
+            countryId: parseInt(countryId, 10),
         },
         include: {
             assignedTo: {
@@ -156,6 +199,13 @@ export const createEnquiry = async (req: Request, res: Response): Promise<void> 
                     firstName: true,
                     lastName: true,
                     email: true,
+                },
+            },
+            country: {
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
                 },
             },
         },
@@ -182,6 +232,7 @@ export const updateEnquiry = async (req: Request, res: Response): Promise<void> 
         thirdFollowUpRemarks,
         remarks,
         assignedToId,
+        countryId,
     } = req.body;
 
     const existingEnquiry = await prisma.enquiry.findUnique({
@@ -213,6 +264,20 @@ export const updateEnquiry = async (req: Request, res: Response): Promise<void> 
     if (assignedToId !== undefined) {
         updateData.assignedToId = assignedToId ? parseInt(assignedToId, 10) : null;
     }
+    if (countryId !== undefined) {
+        if (countryId) {
+            // Validate country exists
+            const country = await prisma.country.findUnique({
+                where: { id: parseInt(countryId, 10) },
+            });
+            if (!country) {
+                throw new BadRequestError('Invalid countryId');
+            }
+            updateData.countryId = parseInt(countryId, 10);
+        } else {
+            updateData.countryId = null;
+        }
+    }
 
     const updatedEnquiry = await prisma.enquiry.update({
         where: { id: parseInt(id, 10) },
@@ -224,6 +289,13 @@ export const updateEnquiry = async (req: Request, res: Response): Promise<void> 
                     firstName: true,
                     lastName: true,
                     email: true,
+                },
+            },
+            country: {
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
                 },
             },
         },

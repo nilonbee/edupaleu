@@ -13,6 +13,7 @@ export interface Enquiry {
     remarks?: string;
     createdBy?: string;
     assignedToId?: number;
+    countryId?: number;
     createdAt: string;
     updatedAt: string;
     assignedTo?: {
@@ -20,6 +21,11 @@ export interface Enquiry {
         firstName: string;
         lastName: string;
         email: string;
+    };
+    country?: {
+        id: number;
+        name: string;
+        code: string;
     };
     applications?: Array<{
         id: number;
@@ -49,6 +55,7 @@ export interface EnquiryQueryParams {
     sort_by?: string;
     order?: 'asc' | 'desc';
     assignedTo?: number;
+    countryId?: number;
 }
 
 export interface CreateEnquiryRequest {
@@ -62,6 +69,7 @@ export interface CreateEnquiryRequest {
     thirdFollowUpRemarks?: string;
     remarks?: string;
     assignedToId?: number;
+    countryId: number;
 }
 
 export interface UpdateEnquiryRequest {
@@ -76,6 +84,7 @@ export interface UpdateEnquiryRequest {
     thirdFollowUpRemarks?: string;
     remarks?: string;
     assignedToId?: number;
+    countryId?: number;
 }
 
 const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
@@ -148,6 +157,10 @@ export const enquiryApi = createApi({
             }),
             invalidatesTags: (result, error, id) => ['Enquiry', { type: 'Enquiry', id }],
         }),
+        getCountries: builder.query<{ success: boolean; data: Array<{ id: number; name: string; code: string }> }, void>({
+            query: () => 'countries',
+            providesTags: ['Enquiry'],
+        }),
     }),
 });
 
@@ -157,5 +170,6 @@ export const {
     useCreateEnquiryMutation,
     useUpdateEnquiryMutation,
     useDeleteEnquiryMutation,
+    useGetCountriesQuery,
 } = enquiryApi;
 

@@ -31,6 +31,7 @@ export const useApplicationSubmission = ({
     intendedPrograms,
     enquiryId,
   } = useAppSelector((state) => state.application);
+  const destinationCountryId = useAppSelector((state: any) => state.application.destinationCountryId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { batchUpload } = useBatchUpload();
@@ -135,6 +136,7 @@ export const useApplicationSubmission = ({
         : undefined,
       intendedPrograms,
       ...(enquiryId && { enquiryId: enquiryId.toString() }),
+      ...(destinationCountryId && { countryId: destinationCountryId.toString() }),
     };
 
     if (mode === 'edit' && applicationId) {

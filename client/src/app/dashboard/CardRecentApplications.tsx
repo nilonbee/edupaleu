@@ -81,7 +81,7 @@ export const CardRecentApplications = () => {
                     {application.student?.displayPicture ? (
                       <Image
                         src={application.student.displayPicture}
-                        alt={`${application.student.firstName} ${application.student.lastName}`}
+                        alt={`${application.student?.firstName || ""} ${application.student?.lastName || ""}`}
                         width={48}
                         height={48}
                         className="rounded-lg w-12 h-12 border flex-shrink-0"
@@ -102,17 +102,17 @@ export const CardRecentApplications = () => {
                   <div className="flex flex-col gap-1 flex-1 min-w-0">
                     {/* Student Name and Program */}
                     <div className="font-semibold text-gray-800 truncate">
-                      {application.student.firstName}{" "}
-                      {application.student.lastName}
+                      {application.student?.firstName || ""}{" "}
+                      {application.student?.lastName || ""}
                     </div>
                     <div className="text-sm text-gray-600 truncate">
-                      {application.intendedProgram}
+                      {application.intendedProgram || "N/A"}
                     </div>
 
                     {/* University and Intake */}
                     <div className="flex items-center text-xs text-gray-500 mt-1">
                       <span className="truncate flex-1 min-w-0">
-                        {application.university.name}
+                        {application.university?.name || "N/A"}
                       </span>
                       <span className="mx-2 flex-shrink-0">•</span>
                       <div className="flex items-center text-xs text-gray-500 flex-shrink-0">

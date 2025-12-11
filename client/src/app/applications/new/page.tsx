@@ -45,6 +45,7 @@ const NewApplicationPage = () => {
             intendedPrograms: [],
             fromEnquiry: true,
             enquiryId: enquiryData.enquiryId,
+            destinationCountryId: enquiryData.countryId,
           }));
         }
       } catch (error) {

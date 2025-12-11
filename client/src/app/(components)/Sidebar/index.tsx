@@ -118,10 +118,10 @@ const Sidebar = () => {
 
             <div className="relative p-2 rounded-lg bg-gradient-to-br from-white/10 via-white/5 to-transparent w-full">
               <Image
-                src="https://ik.imagekit.io/nilonbee/edupaleu/Png.png"
-                alt="edupal-logo"
-                width={100}
-                height={100}
+                src={`${process.env.NEXT_PUBLIC_IMAGEKIT_URL}/edupaleu.logo.png`}
+                alt="edupaleu-logo"
+                width={150}
+                height={150}
                 className="rounded w-full relative z-10"
               />
             </div>

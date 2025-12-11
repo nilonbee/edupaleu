@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useRef } from "react";
+import { useForm } from "react-hook-form";
 import {
   Dialog,
   DialogTitle,
@@ -12,13 +12,16 @@ import {
   FormControl,
   InputLabel,
   Typography,
-} from '@mui/material';
-import { useCreateEnquiryMutation } from '@/state/enquiryApi';
-import { useGetAllUsersQuery } from '@/state/userApi';
-import { useAppSelector } from '@/app/redux';
-import { showToast } from '@/utils/toast';
-import { FormInput } from '@/app/(components)/FormInput';
-import Button from '@/app/(components)/Button';
+} from "@mui/material";
+import {
+  useCreateEnquiryMutation,
+  useGetCountriesQuery,
+} from "@/state/enquiryApi";
+import { useGetAllUsersQuery } from "@/state/userApi";
+import { useAppSelector } from "@/app/redux";
+import { showToast } from "@/utils/toast";
+import { FormInput } from "@/app/(components)/FormInput";
+import Button from "@/app/(components)/Button";
 
 interface CreateEnquiryModalProps {
   open: boolean;
@@ -36,17 +39,22 @@ interface CreateEnquiryFormData {
   thirdFollowUpRemarks?: string;
   remarks?: string;
   assignedToId?: string;
+  countryId: string;
 }
 
-export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, onClose }) => {
+export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({
+  open,
+  onClose,
+}) => {
   const currentUser = useAppSelector((state) => state.auth.user);
   const [createEnquiry, { isLoading }] = useCreateEnquiryMutation();
   const { data: usersResponse } = useGetAllUsersQuery();
+  const { data: countriesResponse } = useGetCountriesQuery();
   const [uploadingCV, setUploadingCV] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const users = usersResponse?.data || [];
-  const agents = users.filter(u => u.role === 'agent' || u.role === 'admin');
+  const countries = countriesResponse?.data || [];
 
   const {
     register,
@@ -61,22 +69,26 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
     },
   });
 
-  const cvDocument = watch('cvDocument');
+  const cvDocument = watch("cvDocument");
 
   const handleCVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate file type
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      showToast.error('Please select a PDF or Word document');
+      showToast.error("Please select a PDF or Word document");
       return;
     }
 
     // Validate file size (max 20MB)
     if (file.size > 20 * 1024 * 1024) {
-      showToast.error('File size must be less than 20MB');
+      showToast.error("File size must be less than 20MB");
       return;
     }
 
@@ -84,29 +96,29 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('documentType', 'CV_DOCUMENT');
+      formData.append("file", file);
+      formData.append("documentType", "CV_DOCUMENT");
 
-      const response = await fetch('/api/v1/file-upload', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch("/api/v1/file-upload", {
+        method: "POST",
+        credentials: "include",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error("Upload failed");
       }
 
       const result = await response.json();
       const fileUrl = result.url || result.filePath;
-      setValue('cvDocument', fileUrl);
-      showToast.success('CV uploaded successfully');
+      setValue("cvDocument", fileUrl);
+      showToast.success("CV uploaded successfully");
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to upload CV');
+      showToast.error(error?.message || "Failed to upload CV");
     } finally {
       setUploadingCV(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -123,14 +135,18 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
         secondFollowUpRemarks: data.secondFollowUpRemarks || undefined,
         thirdFollowUpRemarks: data.thirdFollowUpRemarks || undefined,
         remarks: data.remarks || undefined,
-        assignedToId: data.assignedToId ? parseInt(data.assignedToId, 10) : undefined,
+        assignedToId: data.assignedToId
+          ? parseInt(data.assignedToId, 10)
+          : undefined,
+        countryId: parseInt(data.countryId, 10),
       }).unwrap();
 
-      showToast.success('Enquiry created successfully');
+      showToast.success("Enquiry created successfully");
       reset();
       onClose();
     } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Failed to create enquiry';
+      const errorMessage =
+        error?.data?.message || error?.message || "Failed to create enquiry";
       showToast.error(errorMessage);
     }
   };
@@ -181,6 +197,25 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
               />
             </div>
 
+            <FormControl fullWidth>
+              <InputLabel>Country *</InputLabel>
+              <Select
+                {...register("countryId", { required: "Country is required" })}
+                error={!!errors.countryId}
+              >
+                {countries.map((country) => (
+                  <MenuItem key={country.id} value={country.id.toString()}>
+                    {country.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.countryId && (
+                <Typography variant="caption" color="error" className="mt-1">
+                  {errors.countryId.message}
+                </Typography>
+              )}
+            </FormControl>
+
             <div>
               <InputLabel className="mb-2">CV Document</InputLabel>
               <div className="flex items-center gap-2">
@@ -198,7 +233,7 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
                   onClick={() => fileInputRef.current?.click()}
                   isLoading={uploadingCV}
                 >
-                  {cvDocument ? 'Change CV' : 'Upload CV'}
+                  {cvDocument ? "Change CV" : "Upload CV"}
                 </Button>
                 {cvDocument && (
                   <Typography variant="body2" className="text-green-600">
@@ -211,11 +246,11 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
             <FormControl fullWidth>
               <InputLabel>Assigned To</InputLabel>
               <Select
-                {...register('assignedToId')}
+                {...register("assignedToId")}
                 defaultValue={currentUser?.userId?.toString()}
               >
                 <MenuItem value="">None</MenuItem>
-                {agents.map((user) => (
+                {users.map((user) => (
                   <MenuItem key={user.id} value={user.id.toString()}>
                     {user.firstName} {user.lastName}
                   </MenuItem>
@@ -251,7 +286,7 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
             />
 
             <TextField
-              {...register('remarks')}
+              {...register("remarks")}
               label="Remarks"
               multiline
               rows={3}
@@ -269,11 +304,7 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={isLoading}
-          >
+          <Button type="submit" variant="primary" isLoading={isLoading}>
             Create Enquiry
           </Button>
         </DialogActions>
@@ -281,4 +312,3 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({ open, on
     </Dialog>
   );
 };
-

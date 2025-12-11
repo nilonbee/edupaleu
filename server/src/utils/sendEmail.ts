@@ -13,10 +13,13 @@ export const sendEmail = async ({
 }) => {
   if (process.env.NODE_ENV === 'production') {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-
+    // use sengrid for production
     const msg = {
       to,
-      from: 'nilonbee@gmail.com',
+      from: {
+        name: 'Edupaleu Consultants',
+        email: 'noreply@edupal.com'
+      },
       subject,
       html,
     };

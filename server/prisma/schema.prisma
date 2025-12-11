@@ -172,6 +172,8 @@ model Country {
   createdAt DateTime @default(now())
 
   universities University[]
+  enquiries    Enquiry[]
+  applications Application[]
 }
 
 model University {
@@ -203,6 +205,7 @@ model Student {
   gender                  Gender
   email                   String           @unique @db.VarChar(255)
   phone                   String?          @db.VarChar(20)
+  secondPhone             String?          @db.VarChar(20)
   nationality             String?          @db.VarChar(100)
   passportNumber          String?          @unique @db.VarChar(50)
   displayPicture          String?
@@ -288,13 +291,16 @@ model Enquiry {
   remarks               String?  @db.Text
   createdBy             String?  @db.VarChar(255) // userName
   assignedToId          Int?
+  countryId             Int?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
   assignedTo   User?         @relation("EnquiryAssignedTo", fields: [assignedToId], references: [id])
+  country      Country?      @relation(fields: [countryId], references: [id], onDelete: Restrict)
   applications Application[] @relation("ApplicationFromEnquiry")
 
   @@index([assignedToId])
+  @@index([countryId])
   @@index([email])
   @@index([createdAt])
 }
@@ -313,6 +319,8 @@ model Application {
   assignedAgentId     Int?
   applicationFee      Float     @default(0)
   feePaid             Boolean   @default(false)
+  registered          Boolean   @default(false)
+  countryId           Int?
   submissionDate      DateTime?
   decisionDate        DateTime?
   notes               String?
@@ -327,6 +335,7 @@ model Application {
   applicationStatus      ApplicationStatus?         @relation(fields: [applicationStatusId], references: [id])
   assignedAgent          User?                      @relation("ApplicationAssignedAgent", fields: [assignedAgentId], references: [id])
   assignedTo             User?                      @relation("ApplicationAssignedTo", fields: [assignedToId], references: [id])
+  country                Country?                   @relation(fields: [countryId], references: [id])
   documents              ApplicationDocument[]
   communications         ApplicationCommunication[]
   intendedPrograms       IntendedProgram[]
@@ -339,6 +348,7 @@ model Application {
   @@index([applicationStatusId])
   @@index([assignedAgentId])
   @@index([assignedToId])
+  @@index([countryId])
   @@index([createdAt])
 }
 

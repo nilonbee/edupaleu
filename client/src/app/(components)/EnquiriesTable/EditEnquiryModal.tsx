@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useRef, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import {
   Dialog,
   DialogTitle,
@@ -12,13 +12,17 @@ import {
   FormControl,
   InputLabel,
   Typography,
-} from '@mui/material';
-import { useUpdateEnquiryMutation, useGetSingleEnquiryQuery } from '@/state/enquiryApi';
-import { useGetAllUsersQuery } from '@/state/userApi';
-import { useAppSelector } from '@/app/redux';
-import { showToast } from '@/utils/toast';
-import { FormInput } from '@/app/(components)/FormInput';
-import Button from '@/app/(components)/Button';
+} from "@mui/material";
+import {
+  useUpdateEnquiryMutation,
+  useGetSingleEnquiryQuery,
+  useGetCountriesQuery,
+} from "@/state/enquiryApi";
+import { useGetAllUsersQuery } from "@/state/userApi";
+import { useAppSelector } from "@/app/redux";
+import { showToast } from "@/utils/toast";
+import { FormInput } from "@/app/(components)/FormInput";
+import Button from "@/app/(components)/Button";
 
 interface EditEnquiryModalProps {
   open: boolean;
@@ -37,18 +41,25 @@ interface EditEnquiryFormData {
   thirdFollowUpRemarks?: string;
   remarks?: string;
   assignedToId?: string;
+  countryId?: string;
 }
 
-export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquiryId, onClose }) => {
+export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
+  open,
+  enquiryId,
+  onClose,
+}) => {
   const currentUser = useAppSelector((state) => state.auth.user);
   const [updateEnquiry, { isLoading }] = useUpdateEnquiryMutation();
-  const { data: enquiryResponse, isLoading: isLoadingEnquiry } = useGetSingleEnquiryQuery(enquiryId, { skip: !open });
+  const { data: enquiryResponse, isLoading: isLoadingEnquiry } =
+    useGetSingleEnquiryQuery(enquiryId, { skip: !open });
   const { data: usersResponse } = useGetAllUsersQuery();
+  const { data: countriesResponse } = useGetCountriesQuery();
   const [uploadingCV, setUploadingCV] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const users = usersResponse?.data || [];
-  const agents = users.filter(u => u.role === 'agent' || u.role === 'admin');
+  const countries = countriesResponse?.data || [];
   const enquiry = enquiryResponse?.data;
 
   const {
@@ -60,22 +71,23 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
     watch,
   } = useForm<EditEnquiryFormData>();
 
-  const cvDocument = watch('cvDocument');
+  const cvDocument = watch("cvDocument");
 
   // Populate form when enquiry data loads
   useEffect(() => {
     if (enquiry) {
       reset({
         firstName: enquiry.firstName,
-        lastName: enquiry.lastName || '',
-        email: enquiry.email || '',
+        lastName: enquiry.lastName || "",
+        email: enquiry.email || "",
         phone: enquiry.phone,
-        cvDocument: enquiry.cvDocument || '',
-        firstFollowUpRemarks: enquiry.firstFollowUpRemarks || '',
-        secondFollowUpRemarks: enquiry.secondFollowUpRemarks || '',
-        thirdFollowUpRemarks: enquiry.thirdFollowUpRemarks || '',
-        remarks: enquiry.remarks || '',
-        assignedToId: enquiry.assignedToId?.toString() || '',
+        cvDocument: enquiry.cvDocument || "",
+        firstFollowUpRemarks: enquiry.firstFollowUpRemarks || "",
+        secondFollowUpRemarks: enquiry.secondFollowUpRemarks || "",
+        thirdFollowUpRemarks: enquiry.thirdFollowUpRemarks || "",
+        remarks: enquiry.remarks || "",
+        assignedToId: enquiry.assignedToId?.toString() || "",
+        countryId: enquiry.countryId?.toString() || "",
       });
     }
   }, [enquiry, reset]);
@@ -84,14 +96,18 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      showToast.error('Please select a PDF or Word document');
+      showToast.error("Please select a PDF or Word document");
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      showToast.error('File size must be less than 20MB');
+      showToast.error("File size must be less than 20MB");
       return;
     }
 
@@ -99,29 +115,29 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('documentType', 'CV_DOCUMENT');
+      formData.append("file", file);
+      formData.append("documentType", "CV_DOCUMENT");
 
-      const response = await fetch('/api/v1/file-upload', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch("/api/v1/file-upload", {
+        method: "POST",
+        credentials: "include",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error("Upload failed");
       }
 
       const result = await response.json();
       const fileUrl = result.url || result.filePath;
-      setValue('cvDocument', fileUrl);
-      showToast.success('CV uploaded successfully');
+      setValue("cvDocument", fileUrl);
+      showToast.success("CV uploaded successfully");
     } catch (error: any) {
-      showToast.error(error?.message || 'Failed to upload CV');
+      showToast.error(error?.message || "Failed to upload CV");
     } finally {
       setUploadingCV(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -139,13 +155,17 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
         secondFollowUpRemarks: data.secondFollowUpRemarks || undefined,
         thirdFollowUpRemarks: data.thirdFollowUpRemarks || undefined,
         remarks: data.remarks || undefined,
-        assignedToId: data.assignedToId ? parseInt(data.assignedToId, 10) : undefined,
+        assignedToId: data.assignedToId
+          ? parseInt(data.assignedToId, 10)
+          : undefined,
+        countryId: data.countryId ? parseInt(data.countryId, 10) : undefined,
       }).unwrap();
 
-      showToast.success('Enquiry updated successfully');
+      showToast.success("Enquiry updated successfully");
       onClose();
     } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Failed to update enquiry';
+      const errorMessage =
+        error?.data?.message || error?.message || "Failed to update enquiry";
       showToast.error(errorMessage);
     }
   };
@@ -208,6 +228,21 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
               />
             </div>
 
+            <FormControl fullWidth>
+              <InputLabel>Country</InputLabel>
+              <Select
+                {...register("countryId")}
+                defaultValue={enquiry?.countryId?.toString() || ""}
+              >
+                <MenuItem value="">None</MenuItem>
+                {countries.map((country) => (
+                  <MenuItem key={country.id} value={country.id.toString()}>
+                    {country.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <div>
               <InputLabel className="mb-2">CV Document</InputLabel>
               <div className="flex items-center gap-2">
@@ -225,7 +260,7 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
                   onClick={() => fileInputRef.current?.click()}
                   isLoading={uploadingCV}
                 >
-                  {cvDocument ? 'Change CV' : 'Upload CV'}
+                  {cvDocument ? "Change CV" : "Upload CV"}
                 </Button>
                 {cvDocument && (
                   <Typography variant="body2" className="text-green-600">
@@ -238,11 +273,11 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
             <FormControl fullWidth>
               <InputLabel>Assigned To</InputLabel>
               <Select
-                {...register('assignedToId')}
-                defaultValue={enquiry?.assignedToId?.toString() || ''}
+                {...register("assignedToId")}
+                defaultValue={enquiry?.assignedToId?.toString() || ""}
               >
                 <MenuItem value="">None</MenuItem>
-                {agents.map((user) => (
+                {users.map((user) => (
                   <MenuItem key={user.id} value={user.id.toString()}>
                     {user.firstName} {user.lastName}
                   </MenuItem>
@@ -278,7 +313,7 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
             />
 
             <TextField
-              {...register('remarks')}
+              {...register("remarks")}
               label="Remarks"
               multiline
               rows={3}
@@ -296,11 +331,7 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={isLoading}
-          >
+          <Button type="submit" variant="primary" isLoading={isLoading}>
             Update Enquiry
           </Button>
         </DialogActions>
@@ -308,4 +339,3 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({ open, enquir
     </Dialog>
   );
 };
-

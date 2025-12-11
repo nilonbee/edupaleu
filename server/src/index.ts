@@ -17,6 +17,7 @@ import studentRoutes from './routes/studentRoutes';
 import seedRoutes from './routes/seedRoutes';
 import fileUploadRoutes from './routes/fileUploadRoutes';
 import enquiryRoutes from './routes/enquiryRoutes';
+import countryRoutes from './routes/countryRoutes';
 
 import { errorHandlerMiddleware } from './middleware/error-handler';
 import { notFoundMiddleware } from './middleware/not-found';
@@ -69,6 +70,7 @@ app.use('/api/v1/students', studentRoutes)
 app.use('/api/v1/seed', seedRoutes)
 app.use('/api/v1/file-upload', fileUploadRoutes)
 app.use('/api/v1/enquiries', enquiryRoutes)
+app.use('/api/v1/countries', countryRoutes)
 
 
 

@@ -14,6 +14,7 @@ import {
   Delete as DeleteIcon,
   Article as FileTextIcon,
 } from "@mui/icons-material";
+import { useAppSelector } from "@/app/redux";
 
 interface ActionsMenuProps {
   enquiryId: number;
@@ -32,6 +33,8 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+
+  const currentUser = useAppSelector((state) => state.auth.user);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -102,14 +105,15 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           </ListItemIcon>
           <ListItemText>Create Application</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleDelete} className="text-red-600">
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" className="text-red-600" />
-          </ListItemIcon>
-          <ListItemText>Delete</ListItemText>
-        </MenuItem>
+        {currentUser?.role === "admin" && (
+          <MenuItem onClick={handleDelete}>
+            <ListItemIcon>
+              <FileTextIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Delete</ListItemText>
+          </MenuItem>
+        )}
       </Menu>
     </>
   );
 };
-

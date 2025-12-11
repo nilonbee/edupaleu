@@ -12,6 +12,7 @@ import {
   addIntendedProgram,
   addDocument,
   loadApplicationData,
+  setDestinationCountryId,
 } from '@/state/applicationSlice';
 import { Student } from '@/types/applications';
 import { showToast } from '@/utils/toast';
@@ -189,10 +190,11 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
         // Get ALL form values explicitly - this ensures we capture auto-filled values too
         // List all possible field names to ensure they're all captured
         const allFields = [
-          'firstName', 'lastName', 'dateOfBirth', 'gender', 'email', 'phone',
+          'firstName', 'lastName', 'dateOfBirth', 'gender', 'email', 'phone', 'secondPhone',
           'nationality', 'passportNumber', 'passportExpiry', 'address', 'city',
           'state', 'zipCode', 'studentId', 'hasEnglishTest', 'englishTestType',
-          'englishTestScore', 'englishTestDate', 'emergencyContactName', 'emergencyContactPhone'
+          'englishTestScore', 'englishTestDate', 'emergencyContactName', 'emergencyContactPhone',
+          'destinationCountryId'
         ];
 
         // Get all values at once - this captures all fields regardless of touch state
@@ -225,6 +227,12 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
         }));
         logger.log('Original form values:', formValues);
 
+        // Save destinationCountryId to Redux if present
+        const countryId = fieldValues.destinationCountryId || formValues.destinationCountryId;
+        if (countryId) {
+          dispatch(setDestinationCountryId(parseInt(countryId, 10)));
+        }
+
         // Build student object with all form fields
         // Use fieldValues first, fallback to formValues, then to existing student data
         const updatedStudent: Student = {
@@ -240,6 +248,9 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
           phone: fieldValues.phone !== undefined && fieldValues.phone !== '' ? fieldValues.phone :
             (formValues.phone !== undefined && formValues.phone !== '' ? formValues.phone :
               (student?.phone !== undefined && student.phone !== '' ? student.phone : undefined)),
+          secondPhone: fieldValues.secondPhone !== undefined && fieldValues.secondPhone !== '' ? fieldValues.secondPhone :
+            (formValues.secondPhone !== undefined && formValues.secondPhone !== '' ? formValues.secondPhone :
+              (student?.secondPhone !== undefined && student.secondPhone !== '' ? student.secondPhone : undefined)),
           nationality: fieldValues.nationality !== undefined && fieldValues.nationality !== '' ? fieldValues.nationality :
             (formValues.nationality !== undefined && formValues.nationality !== '' ? formValues.nationality :
               (student?.nationality !== undefined && student.nationality !== '' ? student.nationality : undefined)),

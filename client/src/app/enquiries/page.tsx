@@ -6,7 +6,6 @@ import { EditEnquiryModal } from "@/app/(components)/EnquiriesTable/EditEnquiryM
 import { useAppSelector } from "@/app/redux";
 
 const EnquiriesPage = () => {
-  const currentUser = useAppSelector((state) => state.auth.user);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingEnquiryId, setEditingEnquiryId] = useState<number | null>(null);
 

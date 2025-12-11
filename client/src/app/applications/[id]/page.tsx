@@ -1,23 +1,81 @@
 "use client";
-import React from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useGetApplicationQuery } from "@/state/applicationApi";
+import { useGetApplicationQuery, useUpdateApplicationStatusMutation, useUpdateApplicationRegisteredMutation } from "@/state/applicationApi";
+import { useGetApplicationStatusesQuery } from "@/state/api";
 import { ApplicationViewSkeleton } from "@/app/(components)/LoadingSkeleton/ApplicationSkeleton";
 import Button from "@/app/(components)/Button";
+import { StatusChangeModal } from "@/app/(components)/ApplicationsTable/StatusChangeModal";
+import { showToast } from "@/utils/toast";
+import { useAppSelector } from "@/app/redux";
 
 const ViewApplicationPage = () => {
   const params = useParams();
   const router = useRouter();
   const applicationId = params?.id ? parseInt(params.id as string) : null;
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const isAdmin = currentUser?.role === 'admin';
 
   const {
     data: application,
     isLoading,
     error,
+    refetch,
   } = useGetApplicationQuery(applicationId!, {
     skip: !applicationId,
   });
+
+  const { data: availableStatuses = [] } = useGetApplicationStatusesQuery();
+  const [updateStatus] = useUpdateApplicationStatusMutation();
+  const [updateRegistered] = useUpdateApplicationRegisteredMutation();
+  const [statusModal, setStatusModal] = useState({
+    open: false,
+    applicationId: applicationId!,
+    applicationRef: "",
+    currentStatus: undefined as string | undefined,
+    currentRegistered: false,
+  });
+
+  // Type assertion for the response structure
+  const appData = application ? ((application as any)?.data || application) : null;
+
+  const handleStatusChange = useCallback(
+    async (applicationId: number, newStatus: string) => {
+      try {
+        await updateStatus({ applicationId, status: newStatus }).unwrap();
+        showToast.success("Application status updated successfully");
+        setStatusModal({
+          open: false,
+          applicationId: applicationId,
+          applicationRef: "",
+          currentStatus: undefined,
+          currentRegistered: false,
+        });
+        refetch();
+      } catch (error: any) {
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to update status. Please try again.";
+        showToast.error(errorMessage);
+        throw error;
+      }
+    },
+    [updateStatus, refetch]
+  );
+
+  useEffect(() => {
+    if (appData && applicationId) {
+      setStatusModal({
+        open: false,
+        applicationId: applicationId,
+        applicationRef: appData.applicationRef || "",
+        currentStatus: appData.applicationStatus?.status,
+        currentRegistered: appData.registered ?? false,
+      });
+    }
+  }, [appData, applicationId]);
 
   if (!applicationId) {
     return (
@@ -53,8 +111,20 @@ const ViewApplicationPage = () => {
     );
   }
 
-  // Type assertion for the response structure
-  const appData = (application as any).data as any;
+  if (!appData) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
+          <p className="text-red-600 mb-4">No application data available</p>
+          <Link href="/applications">
+            <Button variant="primary" size="md">
+              Back to Applications
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const formatDate = (date: string | Date | null | undefined) => {
     if (!date) return "N/A";
@@ -106,13 +176,41 @@ const ViewApplicationPage = () => {
                 Reference: {appData.applicationRef}
               </p>
             </div>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
-                appData.applicationStatus?.status
-              )}`}
-            >
-              {appData.applicationStatus?.status || "DRAFT"}
-            </span>
+            <div className="flex items-center gap-3">
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
+                  appData.applicationStatus?.status
+                )}`}
+              >
+                {appData.applicationStatus?.status || "DRAFT"}
+              </span>
+              {appData.registered !== undefined && (
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    appData.registered
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {appData.registered ? "Registered" : "Not Registered"}
+                </span>
+              )}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  setStatusModal({
+                    open: true,
+                    applicationId: applicationId!,
+                    applicationRef: appData.applicationRef || "",
+                    currentStatus: appData.applicationStatus?.status,
+                    currentRegistered: appData.registered ?? false,
+                  })
+                }
+              >
+                Change Status
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -154,6 +252,12 @@ const ViewApplicationPage = () => {
                 <p className="text-sm text-gray-500">Phone</p>
                 <p className="font-medium">{appData.student.phone || "N/A"}</p>
               </div>
+              {appData.student.secondPhone && (
+                <div>
+                  <p className="text-sm text-gray-500">Second Phone</p>
+                  <p className="font-medium">{appData.student.secondPhone || "N/A"}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-gray-500">Date of Birth</p>
                 <p className="font-medium">
@@ -348,6 +452,28 @@ const ViewApplicationPage = () => {
             </div>
           )}
       </div>
+
+      {/* Status Change Modal */}
+      {statusModal.applicationId && (
+        <StatusChangeModal
+          open={statusModal.open}
+          onClose={() =>
+            setStatusModal({
+              open: false,
+              applicationId: applicationId!,
+              applicationRef: "",
+              currentStatus: undefined,
+              currentRegistered: false,
+            })
+          }
+          applicationId={statusModal.applicationId}
+          applicationRef={statusModal.applicationRef}
+          currentStatus={statusModal.currentStatus}
+          availableStatuses={availableStatuses}
+          onStatusChange={handleStatusChange}
+          isAdmin={isAdmin}
+        />
+      )}
     </div>
   );
 };

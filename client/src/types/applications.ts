@@ -7,6 +7,7 @@ export interface Student {
     gender: 'MALE' | 'FEMALE' | 'OTHER';
     email: string;
     phone?: string;
+    secondPhone?: string;
     nationality?: string;
     passportNumber?: string;
     displayPicture?: string;

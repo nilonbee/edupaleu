@@ -4,10 +4,16 @@ import { useFormContext } from "react-hook-form";
 import { useAppSelector } from "@/app/redux";
 import { FormInputB } from "@/app/(components)/FormInputB";
 import { logger } from "@/utils/logger";
+import { useGetCountriesQuery } from "@/state/enquiryApi";
 
 export const StudentDetails: React.FC = () => {
   const { watch, setValue } = useFormContext();
   const { student, fromEnquiry } = useAppSelector((state) => state.application);
+  const destinationCountryId = useAppSelector(
+    (state: any) => state.application.destinationCountryId
+  );
+  const { data: countriesResponse } = useGetCountriesQuery();
+  const countries = countriesResponse?.data || [];
 
   const genderOptions = [
     { value: "MALE", label: "Male" },
@@ -27,6 +33,7 @@ export const StudentDetails: React.FC = () => {
       setValue("gender", student.gender || "");
       setValue("email", student.email || "");
       setValue("phone", student.phone || "");
+      setValue("secondPhone", student.secondPhone || "");
       setValue("nationality", student.nationality || "");
       setValue("passportNumber", student.passportNumber || "");
 
@@ -38,17 +45,19 @@ export const StudentDetails: React.FC = () => {
     }
   }, [student, setValue]);
 
+  // Pre-populate destination country from Redux state (from enquiry or edit mode)
+  useEffect(() => {
+    if (destinationCountryId) {
+      setValue("destinationCountryId", destinationCountryId.toString());
+    }
+  }, [destinationCountryId, setValue]);
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Student Details</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <FormInputB
-          label="First Name"
-          name="firstName"
-          required
-          disabled={fromEnquiry}
-        />
+        <FormInputB label="First Name" name="firstName" required />
         <FormInputB label="Last Name" name="lastName" />
         <FormInputB label="Date of Birth" name="dateOfBirth" type="date" />
         <FormInputB
@@ -58,10 +67,27 @@ export const StudentDetails: React.FC = () => {
           options={genderOptions}
         />
         <FormInputB label="Email" name="email" type="email" required />
-        <FormInputB label="Phone" name="phone" type="tel" />
+        <FormInputB
+          label="Phone"
+          name="phone"
+          type="tel"
+          disabled={fromEnquiry}
+        />
+        <FormInputB label="Second Phone" name="secondPhone" type="tel" />
         <FormInputB label="Nationality" name="nationality" />
         <FormInputB label="Passport Number" name="passportNumber" />
         <FormInputB label="Passport Expiry" name="passportExpiry" type="date" />
+        <FormInputB
+          label="Destination Country"
+          name="destinationCountryId"
+          type="select"
+          required
+          options={countries.map((country) => ({
+            value: country.id.toString(),
+            label: country.name,
+          }))}
+          placeholder="Select Destination Country"
+        />
       </div>
 
       <div className="mb-6">

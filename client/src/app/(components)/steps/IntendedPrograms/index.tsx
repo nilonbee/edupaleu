@@ -110,9 +110,6 @@ const SortableProgramCard: React.FC<SortableProgramCardProps> = ({
             <span className="font-medium">University:</span>{" "}
             {program.university}
           </p>
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">Country:</span> {program.country}
-          </p>
         </div>
 
         {/* Actions */}
@@ -152,37 +149,21 @@ export const IntendedPrograms: React.FC = () => {
     })
   );
 
-  const countryOptions = [
-    { value: "USA", label: "United States" },
-    { value: "UK", label: "United Kingdom" },
-    { value: "CANADA", label: "Canada" },
-    { value: "AUSTRALIA", label: "Australia" },
-    { value: "GERMANY", label: "Germany" },
-    { value: "FRANCE", label: "France" },
-    { value: "JAPAN", label: "Japan" },
-    { value: "SOUTH_KOREA", label: "South Korea" },
-    { value: "OTHER", label: "Other" },
-  ];
-
   const handleAddOrUpdateProgram = (e: React.MouseEvent) => {
     e.preventDefault();
 
     const formData = getValues();
 
     const programData = {
-      country: formData.programCountry || "",
+      country: "", // Country removed from intended programs
       programme: formData.programProgramme || "",
       university: formData.programUniversity || "",
       priority: intendedPrograms.length + 1,
     };
 
-    if (
-      !programData.country ||
-      !programData.programme ||
-      !programData.university
-    ) {
+    if (!programData.programme || !programData.university) {
       showToast.error(
-        "Please fill all required fields: Country, Programme, and University"
+        "Please fill all required fields: Programme and University"
       );
       return;
     }
@@ -211,14 +192,12 @@ export const IntendedPrograms: React.FC = () => {
   };
 
   const resetProgramForm = () => {
-    setValue("programCountry", "");
     setValue("programProgramme", "");
     setValue("programUniversity", "");
   };
 
   const handleEdit = (index: number) => {
     const program = intendedPrograms[index];
-    setValue("programCountry", program.country);
     setValue("programProgramme", program.programme);
     setValue("programUniversity", program.university);
     setEditingIndex(index);
@@ -277,14 +256,7 @@ export const IntendedPrograms: React.FC = () => {
 
       {intendedPrograms.length < 4 && (
         <div className="bg-gray-50 p-6 rounded-lg mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormInputB
-              label="Country"
-              name="programCountry"
-              type="select"
-              options={countryOptions}
-              placeholder="Select Country"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormInputB
               label="Programme"
               name="programProgramme"

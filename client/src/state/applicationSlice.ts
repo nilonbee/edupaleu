@@ -24,6 +24,7 @@ interface ApplicationState {
     completedSteps: number[];
     fromEnquiry?: boolean; // Track if application is being created from an enquiry
     enquiryId?: number; // Store enquiry ID if applicable
+    destinationCountryId?: number; // Store destination country ID
 }
 
 const initialState: ApplicationState = {
@@ -38,6 +39,7 @@ const initialState: ApplicationState = {
     completedSteps: [],
     fromEnquiry: false,
     enquiryId: undefined,
+    destinationCountryId: undefined,
 };
 
 
@@ -221,6 +223,7 @@ const applicationSlice = createSlice({
             intendedPrograms?: IntendedProgram[];
             fromEnquiry?: boolean;
             enquiryId?: number;
+            destinationCountryId?: number;
         }>) => {
             state.student = action.payload.student;
             if (action.payload.university) state.selectedUniversity = action.payload.university;
@@ -231,9 +234,13 @@ const applicationSlice = createSlice({
             if (action.payload.intendedPrograms) state.intendedPrograms = action.payload.intendedPrograms;
             if (action.payload.fromEnquiry !== undefined) state.fromEnquiry = action.payload.fromEnquiry;
             if (action.payload.enquiryId !== undefined) state.enquiryId = action.payload.enquiryId;
+            if (action.payload.destinationCountryId !== undefined) state.destinationCountryId = action.payload.destinationCountryId;
             if (action.payload.university) {
                 state.completedSteps = Array.from({ length: 8 }, (_, i) => i);
             }
+        },
+        setDestinationCountryId: (state, action: PayloadAction<number>) => {
+            state.destinationCountryId = action.payload;
         },
 
     },
@@ -259,6 +266,7 @@ export const {
     setDocumentS3Url,
     loadApplicationData,
     setFromEnquiry,
+    setDestinationCountryId,
 } = applicationSlice.actions;
 
 // Selectors

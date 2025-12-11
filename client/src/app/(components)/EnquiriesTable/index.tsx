@@ -31,6 +31,7 @@ import {
   useDeleteEnquiryMutation,
   EnquiryQueryParams,
   Enquiry,
+  useGetCountriesQuery,
 } from "@/state/enquiryApi";
 import { useGetAllUsersQuery } from "@/state/userApi";
 import { useAppSelector } from "@/app/redux";
@@ -99,6 +100,22 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
       params.assignedTo = parseInt(assignedToFilterItem.value, 10);
     }
 
+    // Extract country filter from DataGrid filterModel
+    const countryFilterItem = filterModel.items?.find(
+      (item: any) => item.field === "country"
+    );
+    if (countryFilterItem && countryFilterItem.value) {
+      // If value is a string (country name), we need to find the country ID
+      // For now, we'll handle it in the backend by searching country name
+      // But if it's a number, use it directly
+      const countryValue = countryFilterItem.value;
+      if (typeof countryValue === 'number') {
+        params.countryId = countryValue;
+      } else if (typeof countryValue === 'string' && !isNaN(parseInt(countryValue, 10))) {
+        params.countryId = parseInt(countryValue, 10);
+      }
+    }
+
     if (sortModel.length > 0) {
       const sort = sortModel[0];
       params.sort_by = sort.field;
@@ -117,6 +134,12 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
   } = useGetAllEnquiriesQuery(queryParams);
 
   const { data: usersResponse } = useGetAllUsersQuery();
+  const { data: countriesResponse } = useGetCountriesQuery();
+  const countries = useMemo(
+    () => countriesResponse?.data || [],
+    [countriesResponse]
+  );
+  
   const agents = useMemo(() => {
     if (!usersResponse) return [];
     return (usersResponse.data || []).filter(
@@ -207,7 +230,7 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
       {
         field: "firstName",
         headerName: "Name",
-        width: 200,
+        width: 100,
         filterable: true,
         renderCell: (params) => (
           <div>
@@ -218,20 +241,50 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
       {
         field: "email",
         headerName: "Email",
-        width: 200,
+        width: 100,
         filterable: true,
         renderCell: (params) => params.row.email || "-",
       },
       {
         field: "phone",
         headerName: "Phone",
-        width: 150,
+        width: 100,
         filterable: true,
       },
       {
+        field: "country",
+        headerName: "Country",
+        width: 100,
+        filterable: true,
+        type: "singleSelect",
+        valueOptions: countries.map((country) => ({
+          value: country.id.toString(),
+          label: country.name,
+        })),
+        valueGetter: (value, row: Enquiry) => {
+          return row.country?.id?.toString() || "";
+        },
+        renderCell: (params) => {
+          const country = params.row.country;
+          if (!country) {
+            return <Typography variant="body2">N/A</Typography>;
+          }
+          return (
+            <Chip
+              label={country.name}
+              size="small"
+              variant="outlined"
+              sx={{
+                backgroundColor: "#f0f0f0",
+              }}
+            />
+          );
+        },
+      },
+      {
         field: "assignedTo",
-        headerName: "Agent",
-        width: 150,
+        headerName: "Asigneee",
+        width: 100,
         filterable: true,
         type: "singleSelect",
         valueOptions: agents.map((agent) => ({
@@ -255,22 +308,120 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
         },
       },
       {
+        field: "firstFollowUpRemarks",
+        headerName: "1st Remark",
+        width: 100,
+        flex: 0,
+        filterable: true,
+        valueGetter: (value, row: Enquiry) => {
+          return row.firstFollowUpRemarks || "N/A";
+        },
+        renderCell: (params) => {
+          const remark = params.value as string;
+          if (!remark || remark === "N/A") {
+            return <Typography variant="body2">-</Typography>;
+          }
+          return (
+            <Typography
+              variant="body2"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "280px",
+              }}
+              title={remark}
+            >
+              {remark}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "secondFollowUpRemarks",
+        headerName: "2nd Remark",
+        width: 100,
+        flex: 0,
+        filterable: true,
+        valueGetter: (value, row: Enquiry) => {
+          return row.secondFollowUpRemarks || "N/A";
+        },
+        renderCell: (params) => {
+          const remark = params.value as string;
+          if (!remark || remark === "N/A") {
+            return <Typography variant="body2">-</Typography>;
+          }
+          return (
+            <Typography
+              variant="body2"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "280px",
+              }}
+              title={remark}
+            >
+              {remark}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "thirdFollowUpRemarks",
+        headerName: "3rd Remark",
+        width: 100,
+        flex: 0,
+        filterable: true,
+        valueGetter: (value, row: Enquiry) => {
+          return row.thirdFollowUpRemarks || "N/A";
+        },
+        renderCell: (params) => {
+          const remark = params.value as string;
+          if (!remark || remark === "N/A") {
+            return <Typography variant="body2">-</Typography>;
+          }
+          return (
+            <Typography
+              variant="body2"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "280px",
+              }}
+              title={remark}
+            >
+              {remark}
+            </Typography>
+          );
+        },
+      },
+      {
         field: "createdBy",
         headerName: "Created By",
-        width: 150,
+        width: 100,
+        flex: 0,
         filterable: true,
-        renderCell: (params) => params.row.createdBy || "-",
+        renderCell: (params) => (
+          <Typography variant="body2">{params.row.createdBy || "-"}</Typography>
+        ),
       },
       {
         field: "createdAt",
         headerName: "Created",
-        width: 150,
+        width: 100,
+        flex: 0,
         filterable: true,
         type: "date",
         valueGetter: (value) => (value ? new Date(value) : null),
         renderCell: (params) => {
           if (!params.value) return "-";
-          return params.value.toLocaleDateString();
+          return (
+            <Typography variant="body2">
+              {params.value.toLocaleDateString()}
+            </Typography>
+          );
         },
       },
       {
@@ -299,7 +450,7 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
         },
       },
     ],
-    [handleView, handleEdit, handleDelete, handleCreateApplication, agents]
+    [handleView, handleEdit, handleDelete, handleCreateApplication, agents, countries]
   );
 
   if (error) {
@@ -355,90 +506,118 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
             <MuiButton
               variant="outlined"
               startIcon={<RefreshIcon />}
-              onClick={() => refetch()}
+              onClick={() => {
+                refetch();
+                setPaginationModel((prev) => ({ ...prev, page: 0 }));
+              }}
               size="small"
+              disabled={isLoading}
             >
               Refresh
             </MuiButton>
-            {(currentUser?.role === "admin" ||
-              currentUser?.role === "agent") && (
-              <Button
-                variant="primary"
-                size="md"
-                onClick={onCreate}
-                className="flex items-center"
-              >
-                <AddIcon className="w-4 h-4 mr-2" />
-                Create Enquiry
-              </Button>
-            )}
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onCreate}
+              className="flex items-center"
+            >
+              <AddIcon className="w-4 h-4 mr-2" />
+              Create Enquiry
+            </Button>
           </Box>
         </Box>
       </Paper>
 
       <Paper style={{ height: 600, width: "100%", position: "relative" }}>
-        {!isLoading && !isDeleting && enquiries.length === 0 ? (
-          <EmptyState
-            title="No enquiries found"
-            message={
-              searchTerm || filterModel.items?.length > 0
-                ? "Try adjusting your search or filter criteria to find enquiries."
-                : "Get started by creating your first enquiry."
-            }
-            actionLabel={
-              !searchTerm &&
-              (!filterModel.items || filterModel.items.length === 0) &&
-              onCreate
-                ? "Create Enquiry"
-                : undefined
-            }
-            onAction={
-              !searchTerm &&
-              (!filterModel.items || filterModel.items.length === 0) &&
-              onCreate
-                ? onCreate
-                : undefined
-            }
-          />
-        ) : (
-          <DataGrid
-            rows={enquiries}
-            columns={columns}
-            getRowId={(row) => row.id}
-            loading={isLoading || isDeleting}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[10, 25, 50, 100]}
-            sortModel={sortModel}
-            onSortModelChange={setSortModel}
-            filterModel={filterModel}
-            onFilterModelChange={(newModel) => {
-              setFilterModel(newModel);
-              setPaginationModel((prev) => ({ ...prev, page: 0 }));
-            }}
-            disableRowSelectionOnClick
-            className="bg-white"
-            rowCount={enquiriesResponse?.pagination?.totalItems || 0}
-            paginationMode="server"
-            sortingMode="server"
-            filterMode="server"
-            slots={{
-              toolbar: GridToolbar,
-            }}
-            slotProps={{
-              toolbar: {
-                showQuickFilter: false,
+        <DataGrid
+          rows={enquiries}
+          columns={columns}
+          getRowId={(row) => row.id}
+          loading={isLoading || isDeleting}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50, 100]}
+          sortModel={sortModel}
+          onSortModelChange={setSortModel}
+          filterModel={filterModel}
+          onFilterModelChange={(newModel) => {
+            setFilterModel(newModel);
+            setPaginationModel((prev) => ({ ...prev, page: 0 }));
+          }}
+          disableRowSelectionOnClick
+          className="bg-white"
+          rowCount={enquiriesResponse?.pagination?.totalItems || 0}
+          paginationMode="server"
+          sortingMode="server"
+          filterMode="server"
+          autoHeight={false}
+          disableColumnResize={false}
+          sx={{
+            "& .MuiDataGrid-cell": {
+              display: "flex",
+              alignItems: "center",
+            },
+            "& .MuiDataGrid-cell:focus": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-row:hover": {
+              backgroundColor: "rgba(0, 0, 0, 0.04)",
+            },
+            "& .MuiDataGrid-root": {
+              overflowX: "auto",
+            },
+          }}
+          slots={{
+            toolbar: GridToolbar,
+            noRowsOverlay: () => (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  p: 4,
+                }}
+              >
+                <EmptyState
+                  title="No enquiries found"
+                  message={
+                    searchTerm || filterModel.items?.length > 0
+                      ? "Try adjusting your search or filter criteria to find enquiries."
+                      : "Get started by creating your first enquiry."
+                  }
+                  actionLabel={
+                    !searchTerm &&
+                    (!filterModel.items || filterModel.items.length === 0) &&
+                    onCreate
+                      ? "Create Enquiry"
+                      : undefined
+                  }
+                  onAction={
+                    !searchTerm &&
+                    (!filterModel.items || filterModel.items.length === 0) &&
+                    onCreate
+                      ? onCreate
+                      : undefined
+                  }
+                />
+              </Box>
+            ),
+          }}
+          slotProps={{
+            toolbar: {
+              showQuickFilter: false,
+            },
+          }}
+          initialState={{
+            filter: {
+              filterModel: {
+                items: [],
               },
-            }}
-            initialState={{
-              filter: {
-                filterModel: {
-                  items: [],
-                },
-              },
-            }}
-          />
-        )}
+            },
+          }}
+        />
       </Paper>
     </Box>
   );

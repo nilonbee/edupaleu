@@ -146,17 +146,34 @@ export interface Application {
   assignedAgentId?: number;
   applicationFee: number;
   feePaid: boolean;
+  registered: boolean;
   submissionDate?: string;
   decisionDate?: string;
   notes?: string;
   createdBy?: number;
   createdAt: string;
+  asignedTo?: User; // Typo kept for backward compatibility
+  asignedAgent?: User; // Typo kept for backward compatibility
+  assignedTo?: User; // Correct spelling
   updatedAt: string;
-  // NEW: Use existing interfaces for joined relations
   student: Student;
   university: University;
   applicationStatus?: ApplicationStatus;
   assignedAgent?: User; // Using your existing User interface
+  country?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  enquiry?: {
+    id: number;
+    firstName: string;
+    lastName?: string;
+    email?: string;
+    firstFollowUpRemarks?: string;
+    secondFollowUpRemarks?: string;
+    thirdFollowUpRemarks?: string;
+  };
 }
 
 const baseQueryWithoutAuth = fetchBaseQuery({

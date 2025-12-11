@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAppSelector } from "@/app/redux";
 import {
   DataGrid,
   GridColDef,
@@ -29,14 +30,21 @@ import {
   useGetApplicationsQuery,
   useDeleteApplicationMutation,
   useUpdateApplicationStatusMutation,
+  useUpdateApplicationAssignedToMutation,
+  useUpdateApplicationAssignedAgentMutation,
+  useUpdateApplicationRegisteredMutation,
   GetApplicationsParams,
   ApplicationsResponse,
 } from "@/state/applicationApi";
 import { Application, ApplicationStatus } from "@/state/api";
 import { useGetApplicationStatusesQuery } from "@/state/api";
+import { useGetAllUsersQuery } from "@/state/userApi";
+import { useGetCountriesQuery } from "@/state/enquiryApi";
 import { showToast } from "@/utils/toast";
 import { ActionsMenu } from "./ActionsMenu";
 import { StatusChangeModal } from "./StatusChangeModal";
+import { UserChangeModal } from "./UserChangeModal";
+import { RegisteredChangeModal } from "./RegisteredChangeModal";
 import { EmptyState } from "@/app/(components)/EmptyState";
 import Button from "@/app/(components)/Button";
 
@@ -49,12 +57,30 @@ interface StatusChangeModalState {
   applicationId: number | null;
   applicationRef: string;
   currentStatus?: string;
+  currentRegistered?: boolean;
+}
+
+interface UserChangeModalState {
+  open: boolean;
+  applicationId: number | null;
+  applicationRef: string;
+  fieldType: "assignedTo" | "assignedAgent";
+  currentUser?: any;
+}
+
+interface RegisteredChangeModalState {
+  open: boolean;
+  applicationId: number | null;
+  applicationRef: string;
+  currentRegistered?: boolean;
 }
 
 export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   onEdit,
 }) => {
   const router = useRouter();
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const isAdmin = currentUser?.role === "admin";
 
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -65,7 +91,9 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: "updatedAt", sort: "desc" },
   ]);
-  const [filterModel, setFilterModel] = useState<GridFilterModel>({ items: [] });
+  const [filterModel, setFilterModel] = useState<GridFilterModel>({
+    items: [],
+  });
 
   // Status change modal state
   const [statusModal, setStatusModal] = useState<StatusChangeModalState>({
@@ -74,6 +102,24 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     applicationRef: "",
     currentStatus: undefined,
   });
+
+  // User change modal state
+  const [userModal, setUserModal] = useState<UserChangeModalState>({
+    open: false,
+    applicationId: null,
+    applicationRef: "",
+    fieldType: "assignedTo",
+    currentUser: undefined,
+  });
+
+  // Registered change modal state
+  const [registeredModal, setRegisteredModal] =
+    useState<RegisteredChangeModalState>({
+      open: false,
+      applicationId: null,
+      applicationRef: "",
+      currentRegistered: false,
+    });
 
   // Build query parameters
   const queryParams: GetApplicationsParams = useMemo(() => {
@@ -87,14 +133,32 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     }
 
     // Extract status filter from DataGrid filterModel
-    const statusFilterItem = filterModel.items?.find((item: any) => item.field === "status");
+    const statusFilterItem = filterModel.items?.find(
+      (item: any) => item.field === "status"
+    );
     if (statusFilterItem && statusFilterItem.value) {
       // Handle both single value and array of values
-      const statusValue = Array.isArray(statusFilterItem.value) 
-        ? statusFilterItem.value.join(',')
+      const statusValue = Array.isArray(statusFilterItem.value)
+        ? statusFilterItem.value.join(",")
         : statusFilterItem.value;
       if (statusValue) {
         params.status = statusValue;
+      }
+    }
+
+    // Extract country filter from DataGrid filterModel
+    const countryFilterItem = filterModel.items?.find(
+      (item: any) => item.field === "country"
+    );
+    if (countryFilterItem && countryFilterItem.value) {
+      const countryValue = countryFilterItem.value;
+      if (typeof countryValue === "number") {
+        params.countryId = countryValue;
+      } else if (
+        typeof countryValue === "string" &&
+        !isNaN(parseInt(countryValue, 10))
+      ) {
+        params.countryId = parseInt(countryValue, 10);
       }
     }
 
@@ -116,11 +180,27 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   } = useGetApplicationsQuery(queryParams);
 
   const { data: availableStatuses = [] } = useGetApplicationStatusesQuery();
+  const { data: usersResponse } = useGetAllUsersQuery();
+  const { data: countriesResponse } = useGetCountriesQuery();
+  const countries = useMemo(
+    () => countriesResponse?.data || [],
+    [countriesResponse]
+  );
 
   const [deleteApplication, { isLoading: isDeleting }] =
     useDeleteApplicationMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] =
     useUpdateApplicationStatusMutation();
+  const [updateAssignedTo, { isLoading: isUpdatingAssignedTo }] =
+    useUpdateApplicationAssignedToMutation();
+  const [updateAssignedAgent, { isLoading: isUpdatingAssignedAgent }] =
+    useUpdateApplicationAssignedAgentMutation();
+  const [updateRegistered, { isLoading: isUpdatingRegistered }] =
+    useUpdateApplicationRegisteredMutation();
+
+  const availableUsers = useMemo(() => {
+    return usersResponse?.data || [];
+  }, [usersResponse]);
 
   // Extract applications and pagination from response
   const applications = useMemo(() => {
@@ -253,10 +333,111 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     [updateStatus, refetch]
   );
 
+  const handleChangeRegisteredClick = useCallback(
+    (id: number, applicationRef: string, currentRegistered?: boolean) => {
+      setRegisteredModal({
+        open: true,
+        applicationId: id,
+        applicationRef,
+        currentRegistered,
+      });
+    },
+    []
+  );
+
+  const handleRegisteredChange = useCallback(
+    async (applicationId: number, registered: boolean) => {
+      try {
+        await updateRegistered({ applicationId, registered }).unwrap();
+        showToast.success("Registration status updated successfully");
+        setRegisteredModal({
+          open: false,
+          applicationId: null,
+          applicationRef: "",
+        });
+        refetch();
+      } catch (error: any) {
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to update registration status. Please try again.";
+        showToast.error(errorMessage);
+        throw error; // Re-throw to let modal handle it
+      }
+    },
+    [updateRegistered, refetch]
+  );
+
+  const handleChangeAssignedToClick = useCallback(
+    (id: number, applicationRef: string, currentUser?: any) => {
+      setUserModal({
+        open: true,
+        applicationId: id,
+        applicationRef,
+        fieldType: "assignedTo",
+        currentUser,
+      });
+    },
+    []
+  );
+
+  const handleChangeAssignedAgentClick = useCallback(
+    (id: number, applicationRef: string, currentUser?: any) => {
+      setUserModal({
+        open: true,
+        applicationId: id,
+        applicationRef,
+        fieldType: "assignedAgent",
+        currentUser,
+      });
+    },
+    []
+  );
+
+  const handleUserChange = useCallback(
+    async (
+      applicationId: number,
+      userId: number | null,
+      fieldType: "assignedTo" | "assignedAgent"
+    ) => {
+      try {
+        if (fieldType === "assignedTo") {
+          await updateAssignedTo({
+            applicationId,
+            assignedToId: userId,
+          }).unwrap();
+          showToast.success("Handled By updated successfully");
+        } else {
+          await updateAssignedAgent({
+            applicationId,
+            assignedAgentId: userId,
+          }).unwrap();
+          showToast.success("Agent updated successfully");
+        }
+        setUserModal({
+          open: false,
+          applicationId: null,
+          applicationRef: "",
+          fieldType: "assignedTo",
+        });
+        refetch();
+      } catch (error: any) {
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          `Failed to update ${
+            fieldType === "assignedTo" ? "Handled By" : "Agent"
+          }. Please try again.`;
+        showToast.error(errorMessage);
+        throw error; // Re-throw to let modal handle it
+      }
+    },
+    [updateAssignedTo, updateAssignedAgent, refetch]
+  );
+
   const handleClearSearch = useCallback(() => {
     setSearchTerm("");
   }, []);
-
 
   // Debounced search - we'll use immediate search with backend filtering
   const handleSearchChange = useCallback(
@@ -267,13 +448,13 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     []
   );
 
-  // Column definitions
+  // Column definitions - Ordered by importance
   const columns: GridColDef[] = useMemo(
     () => [
       {
         field: "applicationRef",
         headerName: "Application Ref",
-        width: 150,
+        width: 140,
         flex: 0,
         filterable: true,
         align: "left",
@@ -289,8 +470,8 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
       {
         field: "studentName",
         headerName: "Student Name",
-        width: 200,
-        flex: 1,
+        width: 160,
+        flex: 0,
         filterable: true,
         valueGetter: (value, row: Application) => {
           if (row.student) {
@@ -302,29 +483,53 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         },
       },
       {
-        field: "university",
-        headerName: "University",
-        width: 200,
-        flex: 1,
+        field: "phone",
+        headerName: "Phone",
+        width: 120,
+        flex: 0,
         filterable: true,
         valueGetter: (value, row: Application) => {
-          return row.university?.name || "N/A";
+          return row.student?.phone || "N/A";
+        },
+        renderCell: (params) => {
+          return <Typography variant="body2">{params.value || "-"}</Typography>;
         },
       },
       {
-        field: "intendedProgram",
-        headerName: "Program",
-        width: 250,
-        flex: 1,
+        field: "country",
+        headerName: "Country",
+        width: 100,
+        flex: 0,
         filterable: true,
+        type: "singleSelect",
+        valueOptions: countries.map((country) => ({
+          value: country.id.toString(),
+          label: country.name,
+        })),
         valueGetter: (value, row: Application) => {
-          return row.intendedProgram || "N/A";
+          return (row as any).country?.id?.toString() || "";
+        },
+        renderCell: (params) => {
+          const country = (params.row as any).country;
+          if (!country) {
+            return <Chip label="N/A" size="small" variant="outlined" />;
+          }
+          return (
+            <Chip
+              label={country.name}
+              size="small"
+              variant="outlined"
+              sx={{
+                backgroundColor: "#f0f0f0",
+              }}
+            />
+          );
         },
       },
       {
         field: "status",
         headerName: "Status",
-        width: 150,
+        width: 100,
         flex: 0,
         filterable: true,
         type: "singleSelect",
@@ -353,9 +558,124 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         },
       },
       {
+        field: "registered",
+        headerName: "Registered",
+        width: 100,
+        flex: 0,
+        filterable: true,
+        type: "boolean",
+        valueGetter: (value, row: Application) => {
+          return row.registered ?? false;
+        },
+        renderCell: (params) => {
+          return (
+            <Chip
+              label={params.value ? "Yes" : "No"}
+              size="small"
+              color={params.value ? "success" : "default"}
+              variant="outlined"
+            />
+          );
+        },
+      },
+      {
+        field: "intendedProgram",
+        headerName: "Program",
+        width: 160,
+        flex: 0,
+        filterable: true,
+        valueGetter: (value, row: Application) => {
+          return row.intendedProgram || "N/A";
+        },
+        renderCell: (params) => {
+          return (
+            <Typography
+              variant="body2"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "280px",
+              }}
+              title={params.value as string}
+            >
+              {params.value || "N/A"}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "asignedTo",
+        headerName: "Handled By",
+        width: 120,
+        flex: 0,
+        filterable: true,
+        valueGetter: (value, row: Application) => {
+          const user = row.assignedTo || row.asignedTo;
+          return user
+            ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || "N/A"
+            : "N/A";
+        },
+        renderCell: (params) => {
+          const user = params.row.assignedTo || params.row.asignedTo;
+          if (!user) {
+            return <Chip label="N/A" size="small" variant="outlined" />;
+          }
+          const name =
+            `${user.firstName || ""} ${user.lastName || ""}`.trim() || "N/A";
+          return (
+            <Chip
+              label={name}
+              size="small"
+              sx={{
+                backgroundColor: "#1e293b",
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "#334155",
+                },
+              }}
+            />
+          );
+        },
+      },
+      {
+        field: "asignedAgent",
+        headerName: "Agent",
+        width: 120,
+        flex: 0,
+        filterable: true,
+        valueGetter: (value, row: Application) => {
+          const user = row.assignedAgent || row.asignedAgent;
+          return user
+            ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || "N/A"
+            : "N/A";
+        },
+        renderCell: (params) => {
+          const user = params.row.assignedAgent || params.row.asignedAgent;
+          if (!user) {
+            return <Chip label="N/A" size="small" variant="outlined" />;
+          }
+          const name =
+            `${user.firstName || ""} ${user.lastName || ""}`.trim() || "N/A";
+          return (
+            <Chip
+              label={name}
+              size="small"
+              sx={{
+                backgroundColor: "#15803d",
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "#16a34a",
+                },
+              }}
+            />
+          );
+        },
+      },
+      {
         field: "submissionDate",
         headerName: "Submission Date",
-        width: 150,
+        width: 100,
         flex: 0,
         filterable: true,
         type: "date",
@@ -393,6 +713,27 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                   application.applicationStatus?.status
                 )
               }
+              onChangeAssignedTo={() =>
+                handleChangeAssignedToClick(
+                  application.id,
+                  application.applicationRef,
+                  application.assignedTo || application.asignedTo
+                )
+              }
+              onChangeAssignedAgent={() =>
+                handleChangeAssignedAgentClick(
+                  application.id,
+                  application.applicationRef,
+                  application.assignedAgent || application.asignedAgent
+                )
+              }
+              onChangeRegistered={() =>
+                handleChangeRegisteredClick(
+                  application.id,
+                  application.applicationRef,
+                  (application as any).registered
+                )
+              }
             />
           );
         },
@@ -403,8 +744,12 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
       handleEdit,
       handleDelete,
       handleChangeStatusClick,
+      handleChangeAssignedToClick,
+      handleChangeAssignedAgentClick,
+      handleChangeRegisteredClick,
       getStatusColor,
       availableStatuses,
+      countries,
     ]
   );
 
@@ -466,9 +811,13 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           </Typography>
           <Button
             variant="secondary"
-            onClick={() => refetch()}
+            onClick={() => {
+              refetch();
+              setPaginationModel((prev) => ({ ...prev, page: 0 }));
+            }}
             size="sm"
             className="flex items-center"
+            disabled={isLoading}
           >
             <RefreshIcon className="w-4 h-4 mr-2" />
             Refresh
@@ -503,7 +852,6 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
               ),
             }}
           />
-
         </Box>
       </Box>
 
@@ -526,6 +874,8 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           loading={isLoading}
           disableRowSelectionOnClick
           className="border-0"
+          autoHeight={false}
+          disableColumnResize={false}
           sx={{
             "& .MuiDataGrid-cell": {
               display: "flex",
@@ -537,6 +887,9 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
             "& .MuiDataGrid-row:hover": {
               backgroundColor: "rgba(0, 0, 0, 0.04)",
             },
+            "& .MuiDataGrid-root": {
+              overflowX: "auto",
+            },
           }}
           rowCount={pagination?.totalItems || applications.length}
           paginationMode={pagination ? "server" : "client"}
@@ -544,6 +897,39 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           filterMode="server"
           slots={{
             toolbar: GridToolbar,
+            noRowsOverlay: () => (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  p: 4,
+                }}
+              >
+                <EmptyState
+                  title="No applications found"
+                  message={
+                    searchTerm || filterModel.items?.length > 0
+                      ? "Try adjusting your search or filter criteria to find applications."
+                      : "Get started by creating your first application."
+                  }
+                  actionLabel={
+                    !searchTerm &&
+                    (!filterModel.items || filterModel.items.length === 0)
+                      ? "Start New Application"
+                      : undefined
+                  }
+                  actionHref={
+                    !searchTerm &&
+                    (!filterModel.items || filterModel.items.length === 0)
+                      ? "/applications/new"
+                      : undefined
+                  }
+                />
+              </Box>
+            ),
           }}
           slotProps={{
             toolbar: {
@@ -559,24 +945,6 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           }}
         />
       </Box>
-
-      {/* Empty State */}
-      {!isLoading && applications.length === 0 && (
-        <EmptyState
-          title="No applications found"
-          message={
-            searchTerm || filterModel.items?.length > 0
-              ? "Try adjusting your search or filter criteria to find applications."
-              : "Get started by creating your first application."
-          }
-          actionLabel={
-            !searchTerm && (!filterModel.items || filterModel.items.length === 0) ? "Start New Application" : undefined
-          }
-          actionHref={
-            !searchTerm && (!filterModel.items || filterModel.items.length === 0) ? "/applications/new" : undefined
-          }
-        />
-      )}
 
       {/* Status Change Modal */}
       {statusModal.applicationId && (
@@ -594,6 +962,46 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           currentStatus={statusModal.currentStatus}
           availableStatuses={availableStatuses}
           onStatusChange={handleStatusChange}
+          isAdmin={isAdmin}
+        />
+      )}
+
+      {/* Registered Change Modal */}
+      {registeredModal.applicationId && (
+        <RegisteredChangeModal
+          open={registeredModal.open}
+          onClose={() =>
+            setRegisteredModal({
+              open: false,
+              applicationId: null,
+              applicationRef: "",
+            })
+          }
+          applicationId={registeredModal.applicationId}
+          applicationRef={registeredModal.applicationRef}
+          currentRegistered={registeredModal.currentRegistered}
+          onRegisteredChange={handleRegisteredChange}
+        />
+      )}
+
+      {/* User Change Modal */}
+      {userModal.applicationId && (
+        <UserChangeModal
+          open={userModal.open}
+          onClose={() =>
+            setUserModal({
+              open: false,
+              applicationId: null,
+              applicationRef: "",
+              fieldType: "assignedTo",
+            })
+          }
+          applicationId={userModal.applicationId}
+          applicationRef={userModal.applicationRef}
+          currentUser={userModal.currentUser}
+          availableUsers={availableUsers}
+          fieldType={userModal.fieldType}
+          onUserChange={handleUserChange}
         />
       )}
     </Paper>
