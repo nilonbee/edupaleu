@@ -233,8 +233,8 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
         throw new UnauthorizedError('Unauthorized to update this user');
     }
 
-    // Only admin can change role or isActive
-    if ((roleName || isActive !== undefined) && !isAdmin) {
+    // Only admin can change role, but admin and agent can change isActive
+    if (roleName && !isAdmin) {
         // Agent can change users to agents
         if (isAgent && roleName === 'agent') {
             // Check if target user is currently admin
@@ -243,8 +243,13 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
             }
             // Allow agent to change to agent
         } else {
-            throw new UnauthorizedError('Only admins can change roles and status');
+            throw new UnauthorizedError('Only admins can change roles');
         }
+    }
+    
+    // Only admin and agent can change isActive status
+    if (isActive !== undefined && !isAdmin && !isAgent) {
+        throw new UnauthorizedError('Only admins and agents can change user status');
     }
 
     const updateData: any = {};
@@ -265,8 +270,32 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
         updateData.roleId = role.id;
     }
 
-    // Status change (admin only)
-    if (isActive !== undefined && isAdmin) {
+    // Status change (admin and agent can change)
+    if (isActive !== undefined && (isAdmin || isAgent)) {
+        // Prevent deactivating the first admin (super admin)
+        if (isActive === false && user.role.name === 'admin') {
+            // Find the first admin (lowest ID with admin role)
+            const firstAdmin = await prisma.user.findFirst({
+                where: {
+                    role: {
+                        name: 'admin',
+                    },
+                },
+                orderBy: {
+                    id: 'asc',
+                },
+            });
+
+            if (firstAdmin && firstAdmin.id === user.id) {
+                throw new BadRequestError('Cannot deactivate the first admin account (super admin)');
+            }
+        }
+
+        // Prevent admins from deactivating themselves
+        if (isActive === false && isOwnProfile && user.role.name === 'admin') {
+            throw new BadRequestError('You cannot deactivate your own admin account');
+        }
+
         updateData.isActive = isActive;
     }
 

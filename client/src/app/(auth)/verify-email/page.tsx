@@ -25,18 +25,19 @@ export default function VerifyEmail() {
     if (token && email) {
       verifyEmail({ verificationToken: token, email })
         .unwrap()
-        .then(() => {
+        .then((response) => {
           setAlert({
             show: true,
-            text: "Email verified successfully!",
+            text: response?.msg || "Email verified successfully!",
             type: "success",
           });
         })
-        .catch(() => {
+        .catch((error) => {
           setError(true);
+          const errorMessage = error?.data?.msg || error?.data?.message || "Failed to verify email. Please check your verification link.";
           setAlert({
             show: true,
-            text: "Failed to verify email. Please check your verification link.",
+            text: errorMessage,
             type: "error",
           });
         });
@@ -109,17 +110,16 @@ export default function VerifyEmail() {
   return (
     <AuthFormWrapper
       title="Email Verified Successfully!"
-      subtitle="Your account has been confirmed and is now active"
+      subtitle="Your account verification is complete"
     >
       <Alert alert={alert} onClose={closeAlert} />
       <div className="text-center py-6">
         <div className="text-green-400 text-6xl mb-4">✓</div>
         <p className="text-white/90 mb-2 text-lg font-medium">
-          Account Confirmed
+          Email Confirmed
         </p>
         <p className="text-white/80 text-sm mb-6">
-          Thank you for verifying your email address. You can now access all
-          features of EduPal.
+          Your account is pending admin approval. You will be able to log in once an administrator activates your account.
         </p>
         <Button
           as="link"
@@ -127,7 +127,7 @@ export default function VerifyEmail() {
           variant="primary"
           size="md"
         >
-          Continue to Login
+          Go to Login
         </Button>
       </div>
     </AuthFormWrapper>

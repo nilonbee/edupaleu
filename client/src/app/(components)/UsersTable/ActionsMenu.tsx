@@ -13,22 +13,33 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Email as EmailIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
 } from "@mui/icons-material";
+import { User } from "@/state/userApi";
 
 interface ActionsMenuProps {
   userId: number;
+  user: User;
+  currentUserId?: number;
+  currentUserRole?: string;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onResendInvite: () => void;
+  onToggleActive?: () => void;
 }
 
 export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   userId,
+  user,
+  currentUserId,
+  currentUserRole,
   onView,
   onEdit,
   onDelete,
   onResendInvite,
+  onToggleActive,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -61,6 +72,18 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
     handleClose();
     onResendInvite();
   };
+
+  const handleToggleActive = () => {
+    handleClose();
+    if (onToggleActive) {
+      onToggleActive();
+    }
+  };
+
+  // Check if current user can toggle this user's status
+  const canToggleStatus = 
+    (currentUserRole === 'admin' || currentUserRole === 'agent') &&
+    onToggleActive !== undefined;
 
   return (
     <>
@@ -102,6 +125,20 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           </ListItemIcon>
           <ListItemText>Resend Invite</ListItemText>
         </MenuItem>
+        {canToggleStatus && (
+          <MenuItem onClick={handleToggleActive}>
+            <ListItemIcon>
+              {user.isActive ? (
+                <CancelIcon fontSize="small" />
+              ) : (
+                <CheckCircleIcon fontSize="small" />
+              )}
+            </ListItemIcon>
+            <ListItemText>
+              {user.isActive ? "Deactivate Account" : "Activate Account"}
+            </ListItemText>
+          </MenuItem>
+        )}
         <MenuItem onClick={handleDelete} className="text-red-600">
           <ListItemIcon>
             <DeleteIcon fontSize="small" className="text-red-600" />

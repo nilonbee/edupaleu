@@ -30,6 +30,7 @@ import {
   useGetAllUsersQuery,
   useDeleteUserMutation,
   useResendInviteEmailMutation,
+  useUpdateUserMutation,
   User,
 } from "@/state/userApi";
 import { useAppSelector } from "@/app/redux";
@@ -99,6 +100,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ onEdit, onCreate }) => {
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   const [resendInviteEmail, { isLoading: isResendingInvite }] =
     useResendInviteEmailMutation();
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
   const users = useMemo(() => {
     if (!usersResponse) return [];
@@ -180,6 +182,39 @@ export const UsersTable: React.FC<UsersTableProps> = ({ onEdit, onCreate }) => {
       }
     },
     [resendInviteEmail]
+  );
+
+  const handleToggleActive = useCallback(
+    async (user: User) => {
+      const action = user.isActive ? "deactivate" : "activate";
+      const actionPast = user.isActive ? "deactivated" : "activated";
+      
+      if (
+        !confirm(
+          `Are you sure you want to ${action} ${user.email}?`
+        )
+      ) {
+        return;
+      }
+
+      try {
+        await updateUser({
+          id: user.id,
+          data: {
+            isActive: !user.isActive,
+          },
+        }).unwrap();
+        showToast.success(`User ${actionPast} successfully`);
+        refetch();
+      } catch (error: any) {
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          `Failed to ${action} user. Please try again.`;
+        showToast.error(errorMessage);
+      }
+    },
+    [updateUser, refetch]
   );
 
   const handleClearSearch = useCallback(() => {
@@ -312,16 +347,20 @@ export const UsersTable: React.FC<UsersTableProps> = ({ onEdit, onCreate }) => {
           return (
             <ActionsMenu
               userId={user.id}
+              user={user}
+              currentUserId={currentUser?.userId}
+              currentUserRole={currentUser?.role}
               onView={() => handleView(user.id)}
               onEdit={() => handleEdit(user.id)}
               onDelete={() => handleDelete(user.id, user.email)}
               onResendInvite={() => handleResendInvite(user.id, user.email)}
+              onToggleActive={() => handleToggleActive(user)}
             />
           );
         },
       },
     ],
-    [handleView, handleEdit, handleDelete, handleResendInvite, getRoleColor]
+    [handleView, handleEdit, handleDelete, handleResendInvite, handleToggleActive, getRoleColor, currentUser]
   );
 
   // Loading state

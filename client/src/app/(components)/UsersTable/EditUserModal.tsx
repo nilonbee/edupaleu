@@ -77,7 +77,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ open, userId, onCl
           lastName: data.lastName,
           phone: data.phone || undefined,
           role: data.role,
-          isActive: currentUser?.role === 'admin' ? data.isActive : undefined,
+          isActive: (currentUser?.role === 'admin' || currentUser?.role === 'agent') ? data.isActive : undefined,
         },
       }).unwrap();
 
@@ -173,17 +173,35 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ open, userId, onCl
               )}
             </FormControl>
 
-            {currentUser?.role === 'admin' && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={isActive}
-                    {...register('isActive')}
-                    onChange={(e) => setValue('isActive', e.target.checked)}
-                  />
-                }
-                label="Active Account"
-              />
+            {(currentUser?.role === 'admin' || currentUser?.role === 'agent') && (
+              <div>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isActive}
+                      {...register('isActive')}
+                      onChange={(e) => {
+                        // Prevent admins from deactivating themselves
+                        if (currentUser?.role === 'admin' && currentUser?.userId === userId && !e.target.checked) {
+                          showToast.error('You cannot deactivate your own admin account');
+                          return;
+                        }
+                        setValue('isActive', e.target.checked);
+                      }}
+                      disabled={
+                        // Disable switch if admin trying to deactivate themselves
+                        currentUser?.role === 'admin' && currentUser?.userId === userId && isActive
+                      }
+                    />
+                  }
+                  label="Active Account"
+                />
+                {(currentUser?.role === 'admin' && currentUser?.userId === userId && isActive) && (
+                  <Typography variant="caption" color="warning" className="ml-3 block mt-1">
+                    You cannot deactivate your own admin account
+                  </Typography>
+                )}
+              </div>
             )}
           </div>
         </DialogContent>

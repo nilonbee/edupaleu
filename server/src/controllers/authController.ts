@@ -37,6 +37,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         // Check if this is the first user (make them admin)
         const userCount = await prisma.user.count();
         const roleName = userCount === 0 ? 'admin' : 'user';
+        const isFirstUser = userCount === 0;
 
         // Get or create the role
         let userRole = await prisma.role.findFirst({
@@ -66,6 +67,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
                 roleId: userRole.id,
                 verificationToken,
                 isVerified: false,
+                // First user (admin) is active immediately, others need admin approval
+                isActive: isFirstUser,
             },
             include: {
                 role: true,
@@ -124,7 +127,9 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
         },
     });
 
-    res.status(StatusCodes.OK).json({ msg: 'Email Verified' });
+    res.status(StatusCodes.OK).json({ 
+        msg: 'Email verified successfully. Your account is pending admin approval. You will be able to log in once an administrator activates your account.' 
+    });
 };
 
 // Setup password from invite

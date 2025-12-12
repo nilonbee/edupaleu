@@ -217,7 +217,7 @@ const Sidebar = () => {
             className="text-center text-xs text-[rgb(224,228,236)] mt-4 font-poppins"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
-            &copy; 2024 Edstock
+            &copy; {new Date().getFullYear()} Edupaleu AB. All rights reserved
           </p>
         </div>
       </div>
