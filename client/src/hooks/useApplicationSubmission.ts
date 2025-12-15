@@ -136,7 +136,7 @@ export const useApplicationSubmission = ({
         : undefined,
       intendedPrograms,
       ...(enquiryId && { enquiryId: enquiryId.toString() }),
-      ...(destinationCountryId && { countryId: destinationCountryId.toString() }),
+      ...(destinationCountryId !== undefined && destinationCountryId !== null && { countryId: destinationCountryId.toString() }),
     };
 
     if (mode === 'edit' && applicationId) {

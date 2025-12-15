@@ -23,9 +23,9 @@ const upload = async (file: any, bucketName: string): Promise<any> => {
         const sanitizedFileName = file.name
             ? file.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 200)
             : 'document';
-        
+
         const tempFileName = `doc_${Date.now()}_${Math.random().toString(36).substring(7)}_${sanitizedFileName}`;
-        
+
         const params: AWS.S3.PutObjectRequest = {
             Bucket: bucketName,
             Key: `uploads/${tempFileName}`,

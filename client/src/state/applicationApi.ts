@@ -181,6 +181,9 @@ export const applicationApi = createApi({
                     const statusArray = Array.isArray(queryParams.status) ? queryParams.status : [queryParams.status];
                     searchParams.append('status', statusArray.join(','));
                 }
+                if (queryParams.countryId !== undefined && queryParams.countryId !== null) {
+                    searchParams.append('countryId', queryParams.countryId.toString());
+                }
                 if (queryParams.sort_by) searchParams.append('sort_by', queryParams.sort_by);
                 if (queryParams.order) searchParams.append('order', queryParams.order);
                 if (queryParams.page) searchParams.append('page', queryParams.page.toString());

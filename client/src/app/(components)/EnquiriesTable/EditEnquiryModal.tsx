@@ -23,6 +23,7 @@ import { useAppSelector } from "@/app/redux";
 import { showToast } from "@/utils/toast";
 import { FormInput } from "@/app/(components)/FormInput";
 import Button from "@/app/(components)/Button";
+import { useUploadDocumentMutation } from "@/state/applicationApi";
 
 interface EditEnquiryModalProps {
   open: boolean;
@@ -51,6 +52,7 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
 }) => {
   const currentUser = useAppSelector((state) => state.auth.user);
   const [updateEnquiry, { isLoading }] = useUpdateEnquiryMutation();
+  const [uploadDocument] = useUploadDocumentMutation();
   const { data: enquiryResponse, isLoading: isLoadingEnquiry } =
     useGetSingleEnquiryQuery(enquiryId, { skip: !open });
   const { data: usersResponse } = useGetAllUsersQuery();
@@ -115,21 +117,20 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("document", file);
       formData.append("documentType", "CV_DOCUMENT");
 
-      const response = await fetch("/api/v1/file-upload", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+      const response = await uploadDocument(formData).unwrap();
+      const fileUrl =
+        response?.result?.Location ||
+        response?.result?.location ||
+        response?.Location ||
+        response?.location;
 
-      if (!response.ok) {
-        throw new Error("Upload failed");
+      if (!fileUrl) {
+        throw new Error("Upload succeeded but no URL returned");
       }
 
-      const result = await response.json();
-      const fileUrl = result.url || result.filePath;
       setValue("cvDocument", fileUrl);
       showToast.success("CV uploaded successfully");
     } catch (error: any) {

@@ -9,6 +9,7 @@ import { FormInput } from "@/app/(components)/FormInput";
 import Button from "@/app/(components)/Button";
 import { Camera, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { useUploadDocumentMutation } from "@/state/applicationApi";
 
 interface SettingsFormData {
   firstName: string;
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const { data: userResponse, refetch } = useGetCurrentUserQuery();
   const [updateCurrentUser, { isLoading }] = useUpdateCurrentUserMutation();
+  const [uploadDocument] = useUploadDocumentMutation();
   const [uploadingDP, setUploadingDP] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,25 +87,21 @@ export default function SettingsPage() {
     setUploadingDP(true);
 
     try {
-      // Upload to S3 or your file storage
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("document", file);
       formData.append("documentType", "USER_DISPLAY_PICTURE");
 
-      const response = await fetch("/api/v1/file-upload", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+      const response = await uploadDocument(formData).unwrap();
+      const imageUrl =
+        response?.result?.Location ||
+        response?.result?.location ||
+        response?.Location ||
+        response?.location;
 
-      if (!response.ok) {
-        throw new Error("Upload failed");
+      if (!imageUrl) {
+        throw new Error("Upload succeeded but no URL returned");
       }
 
-      const result = await response.json();
-      const imageUrl = result.url || result.filePath;
-
-      // Update user profile with new DP URL
       await updateCurrentUser({
         displayPicture: imageUrl,
       }).unwrap();
@@ -139,7 +137,9 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold mb-4">Display Picture</h2>
           <div className="flex items-center gap-6">
             <div className="relative">
-              {user?.displayPicture && user.displayPicture !== 'null' && user.displayPicture !== null ? (
+              {user?.displayPicture &&
+              user.displayPicture !== "null" &&
+              user.displayPicture !== null ? (
                 <Image
                   src={user.displayPicture}
                   alt="Profile"

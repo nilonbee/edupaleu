@@ -43,15 +43,21 @@ export const getApplications = async (req: Request, res: Response) => {
             }
         }
 
-        // Filter by countryId (application's direct country field)
+        // Filter by countryId - use relation like search does
+        let countryFilter: any = null;
         if (countryId) {
-            where.countryId = parseInt(countryId as string, 10);
+            const parsedCountryId = parseInt(countryId as string, 10);
+            if (!isNaN(parsedCountryId) && parsedCountryId > 0) {
+                countryFilter = {
+                    id: parsedCountryId
+                };
+            }
         }
 
         // Global search - search across applicationRef, student name (direct or via student relation), university name, program, country, status
         if (search) {
             const searchTerm = (search as string).trim();
-            where.OR = [
+            const searchConditions: any[] = [
                 { applicationRef: { contains: searchTerm, mode: 'insensitive' } },
                 { intendedProgram: { contains: searchTerm, mode: 'insensitive' } },
                 { firstName: { contains: searchTerm, mode: 'insensitive' } },
@@ -103,6 +109,19 @@ export const getApplications = async (req: Request, res: Response) => {
                     }
                 }
             ];
+
+            // Combine country filter with search if both exist
+            if (countryFilter) {
+                where.AND = [
+                    { country: countryFilter },
+                    { OR: searchConditions }
+                ];
+            } else {
+                where.OR = searchConditions;
+            }
+        } else if (countryFilter) {
+            // Only country filter, no search
+            where.country = countryFilter;
         }
 
         // Build orderBy clause
@@ -203,7 +222,6 @@ export const getApplications = async (req: Request, res: Response) => {
             }
         });
     } catch (error: any) {
-        console.error('Error fetching applications:', error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             error: error.message,
@@ -540,6 +558,13 @@ export const createApplication = async (req: Request, res: Response) => {
                 academicQualifications: {
                     orderBy: { createdAt: 'asc' }
                 },
+                country: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                    }
+                },
                 university: {
                     select: {
                         id: true,
@@ -653,7 +678,9 @@ export const createApplication = async (req: Request, res: Response) => {
             academicQualifications: Array.isArray(formattedAcademicQualifications) ? formattedAcademicQualifications : [],
             documents: createdApp?.documents || [],
             intendedPrograms: createdApp?.intendedPrograms || [],
-            submissionDate: createdApp?.submissionDate
+            submissionDate: createdApp?.submissionDate,
+            countryId: createdApp?.countryId || null,
+            country: (createdApp as any)?.country || null,
         };
 
         // Build response object
@@ -668,15 +695,15 @@ export const createApplication = async (req: Request, res: Response) => {
                 academicQualifications: responseData.academicQualifications, // EXPLICITLY INCLUDE
                 documents: responseData.documents,
                 intendedPrograms: responseData.intendedPrograms,
-                submissionDate: responseData.submissionDate
+                submissionDate: responseData.submissionDate,
+                countryId: responseData.countryId,
+                country: responseData.country
             }
         };
 
         return res.status(StatusCodes.CREATED).json(finalResponse);
 
     } catch (error: any) {
-        console.error('Error creating application:', error);
-
         // Handle specific Prisma errors
         if (error.code === 'P2002') {
             // Check which unique constraint was violated
@@ -735,6 +762,13 @@ export const getApplication = async (req: Request, res: Response) => {
                                 code: true,
                             }
                         }
+                    }
+                },
+                country: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
                     }
                 },
                 applicationStatus: true,
@@ -852,11 +886,11 @@ export const getApplication = async (req: Request, res: Response) => {
                 assignedTo: application.assignedTo || null,
                 assignedAgent: application.assignedAgent || null,
                 countryId: application.countryId || null,
+                country: application.country || null,
             }
         });
 
     } catch (error: any) {
-        console.error('Error fetching application:', error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to fetch application",
@@ -876,7 +910,8 @@ export const updateApplication = async (req: Request, res: Response) => {
             documents,
             maritalStatus,
             marriageCertificate,
-            intendedPrograms
+            intendedPrograms,
+            countryId
         } = req.body;
 
         // Validate application exists
@@ -1041,6 +1076,15 @@ export const updateApplication = async (req: Request, res: Response) => {
                 studentId = newStudent.id;
             }
 
+            // Get countryId from request or keep existing
+            let destinationCountryId = null;
+            if (countryId) {
+                const parsedCountryId = parseInt(countryId as string, 10);
+                if (!isNaN(parsedCountryId) && parsedCountryId > 0) {
+                    destinationCountryId = parsedCountryId;
+                }
+            }
+
             // 2. Update the main application
             const application = await tx.application.update({
                 where: { id: parseInt(id) },
@@ -1050,6 +1094,7 @@ export const updateApplication = async (req: Request, res: Response) => {
                     lastName: student.lastName || '',
                     universityId: universityId || existingApplication.universityId, // Keep existing if null
                     intendedProgram: primaryProgram.programme || 'Not specified',
+                    countryId: destinationCountryId !== null ? destinationCountryId : existingApplication.countryId, // Update if provided, otherwise keep existing
                     updatedAt: new Date(),
                 }
             });
@@ -1162,6 +1207,13 @@ export const updateApplication = async (req: Request, res: Response) => {
                         }
                     }
                 },
+                country: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                    }
+                },
                 documents: {
                     select: {
                         id: true,
@@ -1260,6 +1312,8 @@ export const updateApplication = async (req: Request, res: Response) => {
             documents: updatedApp?.documents || [],
             intendedPrograms: updatedApp?.intendedPrograms || [],
             submissionDate: updatedApp?.submissionDate,
+            countryId: updatedApp?.countryId || null,
+            country: updatedApp?.country || null,
             updatedAt: updatedApp?.updatedAt
         };
 
@@ -1276,6 +1330,8 @@ export const updateApplication = async (req: Request, res: Response) => {
                 documents: responseData.documents,
                 intendedPrograms: responseData.intendedPrograms,
                 submissionDate: responseData.submissionDate,
+                countryId: responseData.countryId,
+                country: responseData.country,
                 updatedAt: responseData.updatedAt
             }
         };
@@ -1283,8 +1339,6 @@ export const updateApplication = async (req: Request, res: Response) => {
         return res.status(StatusCodes.OK).json(finalResponse);
 
     } catch (error: any) {
-        console.error('Error updating application:', error);
-
         // Handle specific Prisma errors
         if (error.code === 'P2003') {
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -1327,7 +1381,6 @@ export const deleteApplication = async (req: Request, res: Response) => {
             message: "Application deleted successfully"
         });
     } catch (error: any) {
-        console.error('Error deleting application:', error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to delete application",
@@ -1429,7 +1482,6 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
             }
         });
     } catch (error: any) {
-        console.error('Error updating application status:', error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to update application status",
@@ -1494,7 +1546,6 @@ export const updateApplicationAssignedTo = async (req: Request, res: Response) =
             data: updatedApplication
         });
     } catch (error: any) {
-        console.error('Error updating application assigned to:', error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to update application assigned to",
@@ -1559,7 +1610,6 @@ export const updateApplicationAssignedAgent = async (req: Request, res: Response
             data: updatedApplication
         });
     } catch (error: any) {
-        console.error('Error updating application assigned agent:', error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to update application assigned agent",
@@ -1600,7 +1650,6 @@ export const updateApplicationRegistered = async (req: Request, res: Response) =
             data: updatedApplication
         });
     } catch (error: any) {
-        console.error('Error updating application registered status:', error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Failed to update application registered status",

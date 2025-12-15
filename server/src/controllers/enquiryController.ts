@@ -55,6 +55,49 @@ export const getAllEnquiries = async (req: Request, res: Response): Promise<void
         where.countryId = parseInt(countryId as string, 10);
     }
 
+    // Build orderBy clause - handle relation fields specially
+    let orderBy: any = {};
+
+    // Map frontend sort fields to Prisma orderBy
+    // Handle relation fields that need nested sorting
+    if (sort_by === 'country') {
+        orderBy = {
+            country: {
+                name: order,
+            },
+        };
+    } else if (sort_by === 'assignee' || sort_by === 'assignedTo') {
+        orderBy = {
+            assignedTo: {
+                firstName: order,
+            },
+        };
+    } else {
+        // Direct fields on Enquiry model
+        const validSortFields = [
+            'id',
+            'firstName',
+            'lastName',
+            'email',
+            'phone',
+            'createdAt',
+            'updatedAt',
+            'assignedToId',
+            'countryId',
+        ];
+
+        if (validSortFields.includes(sort_by as string)) {
+            orderBy = {
+                [sort_by as string]: order,
+            };
+        } else {
+            // Default to createdAt if invalid field
+            orderBy = {
+                createdAt: order,
+            };
+        }
+    }
+
     const [enquiries, totalCount] = await Promise.all([
         prisma.enquiry.findMany({
             where,
@@ -75,9 +118,7 @@ export const getAllEnquiries = async (req: Request, res: Response): Promise<void
                     },
                 },
             },
-            orderBy: {
-                [sort_by as string]: order,
-            },
+            orderBy,
             skip,
             take: limitNum,
         }),
