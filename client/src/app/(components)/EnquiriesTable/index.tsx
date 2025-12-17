@@ -158,7 +158,7 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
     pageSize: 10,
   });
   const [sortModel, setSortModel] = useState<GridSortModel>([
-    { field: "remarks", sort: "desc" },
+    { field: "updatedAt", sort: "desc" },
   ]);
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
     items: [],
@@ -167,8 +167,8 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
   // Build query parameters
   const queryParams: EnquiryQueryParams = useMemo(() => {
     const params: EnquiryQueryParams = {
-      page: paginationModel.page + 1,
-      limit: paginationModel.pageSize,
+      page: paginationModel.pageSize === -1 ? 1 : paginationModel.page + 1,
+      limit: paginationModel.pageSize === -1 ? 10000 : paginationModel.pageSize,
     };
 
     if (searchTerm.trim()) {
@@ -702,7 +702,7 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
           loading={isLoading || isDeleting}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 25, 50, 100]}
+          pageSizeOptions={[10, 25, 50, 100, { value: -1, label: "All" }]}
           sortModel={sortModel}
           onSortModelChange={setSortModel}
           filterModel={filterModel}

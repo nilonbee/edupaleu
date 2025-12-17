@@ -124,8 +124,8 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   // Build query parameters
   const queryParams: GetApplicationsParams = useMemo(() => {
     const params: GetApplicationsParams = {
-      page: paginationModel.page + 1, // Backend uses 1-based pagination
-      limit: paginationModel.pageSize,
+      page: paginationModel.pageSize === -1 ? 1 : paginationModel.page + 1, // Backend uses 1-based pagination
+      limit: paginationModel.pageSize === -1 ? 10000 : paginationModel.pageSize,
     };
 
     if (searchTerm.trim()) {
@@ -870,7 +870,7 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
             setFilterModel(newModel);
             setPaginationModel((prev) => ({ ...prev, page: 0 }));
           }}
-          pageSizeOptions={[10, 25, 50, 100]}
+          pageSizeOptions={[10, 25, 50, 100, { value: -1, label: "All" }]}
           loading={isLoading}
           disableRowSelectionOnClick
           className="border-0"

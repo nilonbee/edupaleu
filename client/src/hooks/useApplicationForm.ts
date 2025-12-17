@@ -190,7 +190,7 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
         // Get ALL form values explicitly - this ensures we capture auto-filled values too
         // List all possible field names to ensure they're all captured
         const allFields = [
-          'firstName', 'lastName', 'dateOfBirth', 'gender', 'email', 'phone', 'secondPhone',
+          'firstName', 'lastName', 'dateOfBirth', 'gender', 'email', 'givenEmail', 'phone', 'secondPhone',
           'nationality', 'passportNumber', 'passportExpiry', 'address', 'city',
           'state', 'zipCode', 'studentId', 'hasEnglishTest', 'englishTestType',
           'englishTestScore', 'englishTestDate', 'emergencyContactName', 'emergencyContactPhone',
@@ -243,6 +243,9 @@ export const useApplicationForm = (mode: 'create' | 'edit' = 'create') => {
           dateOfBirth: fieldValues.dateOfBirth || formValues.dateOfBirth || student?.dateOfBirth || '',
           gender: (fieldValues.gender || formValues.gender || student?.gender || 'MALE') as 'MALE' | 'FEMALE' | 'OTHER',
           email: fieldValues.email || formValues.email || student?.email || '',
+          givenEmail: fieldValues.givenEmail !== undefined && fieldValues.givenEmail !== '' ? fieldValues.givenEmail :
+            (formValues.givenEmail !== undefined && formValues.givenEmail !== '' ? formValues.givenEmail :
+              (student?.givenEmail !== undefined && student.givenEmail !== '' ? student.givenEmail : undefined)),
           hasEnglishTest: fieldValues.hasEnglishTest ?? formValues.hasEnglishTest ?? student?.hasEnglishTest ?? false,
           // Optional fields - use fieldValues if available, otherwise formValues, otherwise existing, otherwise undefined
           phone: fieldValues.phone !== undefined && fieldValues.phone !== '' ? fieldValues.phone :

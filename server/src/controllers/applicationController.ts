@@ -365,6 +365,7 @@ export const createApplication = async (req: Request, res: Response) => {
                             dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth) : new Date(),
                             gender: normalizedGender,
                             email: student.email.trim(),
+                            givenEmail: student.givenEmail?.trim() || null,
                             phone: student.phone || null,
                             nationality: student.nationality || null,
                             passportNumber: student.passportNumber || null,
@@ -383,7 +384,49 @@ export const createApplication = async (req: Request, res: Response) => {
                 }
             }
 
-            // If no existing student, create a new one
+            // If no existing student by ID, check by email
+            if (!studentId && student.email) {
+                const existingStudentByEmail = await tx.student.findUnique({
+                    where: { email: student.email.trim() }
+                });
+                if (existingStudentByEmail) {
+                    studentId = existingStudentByEmail.id;
+                    // Update existing student with latest data
+                    let normalizedGender: 'male' | 'female' | 'other' | null = null;
+                    if (student.gender) {
+                        const genderLower = student.gender.toLowerCase();
+                        if (genderLower === 'male' || genderLower === 'female' || genderLower === 'other') {
+                            normalizedGender = genderLower as 'male' | 'female' | 'other';
+                        }
+                    }
+                    await tx.student.update({
+                        where: { id: existingStudentByEmail.id },
+                        data: {
+                            firstName: student.firstName.trim(),
+                            lastName: student.lastName?.trim() || null,
+                            dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth) : existingStudentByEmail.dateOfBirth,
+                            gender: normalizedGender || existingStudentByEmail.gender,
+                            givenEmail: student.givenEmail?.trim() || null,
+                            phone: student.phone?.trim() || null,
+                            secondPhone: student.secondPhone?.trim() || null,
+                            nationality: student.nationality?.trim() || null,
+                            passportNumber: student.passportNumber?.trim() || null,
+                            passportExpiry: student.passportExpiry ? new Date(student.passportExpiry) : null,
+                            address: student.address?.trim() || null,
+                            city: student.city?.trim() || null,
+                            state: student.state?.trim() || null,
+                            zipCode: student.zipCode?.trim() || null,
+                            displayPicture: student.displayPicture || null,
+                            hasEnglishTest: student.hasEnglishTest || false,
+                            englishTestType: student.englishTestType || null,
+                            englishTestScore: student.englishTestScore?.trim() || null,
+                            englishTestDate: student.englishTestDate ? new Date(student.englishTestDate) : null,
+                        }
+                    });
+                }
+            }
+
+            // If still no student, create a new one
             if (!studentId) {
                 // Parse dateOfBirth - handle both string and Date formats
                 let dateOfBirth: Date;
@@ -415,6 +458,7 @@ export const createApplication = async (req: Request, res: Response) => {
                         dateOfBirth: dateOfBirth,
                         gender: normalizedGender,
                         email: student.email.trim(),
+                        givenEmail: student.givenEmail?.trim() || null,
                         phone: student.phone?.trim() || null,
                         secondPhone: student.secondPhone?.trim() || null,
                         nationality: student.nationality?.trim() || null,
@@ -826,6 +870,7 @@ export const getApplication = async (req: Request, res: Response) => {
             dateOfBirth: application.student.dateOfBirth ? application.student.dateOfBirth.toISOString().split('T')[0] : null,
             gender: application.student.gender || null,
             email: application.student.email,
+            givenEmail: (application.student as any).givenEmail || null,
             phone: application.student.phone || null,
             secondPhone: (application.student as any).secondPhone || null,
             nationality: application.student.nationality || null,
@@ -1006,6 +1051,7 @@ export const updateApplication = async (req: Request, res: Response) => {
                             dateOfBirth: dateOfBirth,
                             gender: normalizedGender,
                             email: student.email.trim(),
+                            givenEmail: student.givenEmail?.trim() || null,
                             phone: student.phone?.trim() || null,
                             secondPhone: student.secondPhone?.trim() || null,
                             nationality: student.nationality?.trim() || null,
@@ -1057,6 +1103,7 @@ export const updateApplication = async (req: Request, res: Response) => {
                         dateOfBirth: dateOfBirth,
                         gender: normalizedGender,
                         email: student.email.trim(),
+                        givenEmail: student.givenEmail?.trim() || null,
                         phone: student.phone?.trim() || null,
                         secondPhone: student.secondPhone?.trim() || null,
                         nationality: student.nationality?.trim() || null,

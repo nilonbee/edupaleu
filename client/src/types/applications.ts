@@ -6,6 +6,7 @@ export interface Student {
     dateOfBirth: string;
     gender: 'MALE' | 'FEMALE' | 'OTHER';
     email: string;
+    givenEmail?: string;
     phone?: string;
     secondPhone?: string;
     nationality?: string;

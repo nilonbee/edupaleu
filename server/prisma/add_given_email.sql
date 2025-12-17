@@ -1,0 +1,2 @@
+ALTER TABLE "Student" ADD COLUMN IF NOT EXISTS "givenEmail" VARCHAR(255);
+

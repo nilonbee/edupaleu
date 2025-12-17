@@ -2,7 +2,11 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useGetApplicationQuery, useUpdateApplicationStatusMutation, useUpdateApplicationRegisteredMutation } from "@/state/applicationApi";
+import {
+  useGetApplicationQuery,
+  useUpdateApplicationStatusMutation,
+  useUpdateApplicationRegisteredMutation,
+} from "@/state/applicationApi";
 import { useGetApplicationStatusesQuery } from "@/state/api";
 import { ApplicationViewSkeleton } from "@/app/(components)/LoadingSkeleton/ApplicationSkeleton";
 import Button from "@/app/(components)/Button";
@@ -15,7 +19,7 @@ const ViewApplicationPage = () => {
   const router = useRouter();
   const applicationId = params?.id ? parseInt(params.id as string) : null;
   const currentUser = useAppSelector((state) => state.auth.user);
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === "admin";
 
   const {
     data: application,
@@ -38,7 +42,9 @@ const ViewApplicationPage = () => {
   });
 
   // Type assertion for the response structure
-  const appData = application ? ((application as any)?.data || application) : null;
+  const appData = application
+    ? (application as any)?.data || application
+    : null;
 
   const handleStatusChange = useCallback(
     async (applicationId: number, newStatus: string) => {
@@ -238,16 +244,26 @@ const ViewApplicationPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">First Name</p>
-                <p className="font-medium">{appData.student.firstName || "N/A"}</p>
+                <p className="font-medium">
+                  {appData.student.firstName || "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Last Name</p>
-                <p className="font-medium">{appData.student.lastName || "N/A"}</p>
+                <p className="font-medium">
+                  {appData.student.lastName || "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Email</p>
                 <p className="font-medium">{appData.student.email || "N/A"}</p>
               </div>
+              {appData.student.givenEmail && (
+                <div>
+                  <p className="text-sm text-gray-500">Given Email</p>
+                  <p className="font-medium">{appData.student.givenEmail}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-gray-500">Phone</p>
                 <p className="font-medium">{appData.student.phone || "N/A"}</p>
@@ -255,7 +271,9 @@ const ViewApplicationPage = () => {
               {appData.student.secondPhone && (
                 <div>
                   <p className="text-sm text-gray-500">Second Phone</p>
-                  <p className="font-medium">{appData.student.secondPhone || "N/A"}</p>
+                  <p className="font-medium">
+                    {appData.student.secondPhone || "N/A"}
+                  </p>
                 </div>
               )}
               <div>
@@ -288,7 +306,9 @@ const ViewApplicationPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Address</p>
-                <p className="font-medium">{appData.student.address || "N/A"}</p>
+                <p className="font-medium">
+                  {appData.student.address || "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">City</p>
@@ -300,17 +320,23 @@ const ViewApplicationPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">ZIP Code</p>
-                <p className="font-medium">{appData.student.zipCode || "N/A"}</p>
+                <p className="font-medium">
+                  {appData.student.zipCode || "N/A"}
+                </p>
               </div>
               {appData.student.hasEnglishTest && (
                 <>
                   <div>
                     <p className="text-sm text-gray-500">English Test Type</p>
-                    <p className="font-medium">{appData.student.englishTestType || "N/A"}</p>
+                    <p className="font-medium">
+                      {appData.student.englishTestType || "N/A"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">English Test Score</p>
-                    <p className="font-medium">{appData.student.englishTestScore || "N/A"}</p>
+                    <p className="font-medium">
+                      {appData.student.englishTestScore || "N/A"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">English Test Date</p>
@@ -423,8 +449,8 @@ const ViewApplicationPage = () => {
           appData.academicQualifications.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
-                Academic Qualifications (
-                {appData.academicQualifications.length})
+                Academic Qualifications ({appData.academicQualifications.length}
+                )
               </h2>
               <div className="space-y-4">
                 {appData.academicQualifications.map(

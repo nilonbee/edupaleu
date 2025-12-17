@@ -32,6 +32,7 @@ export const StudentDetails: React.FC = () => {
       setValue("dateOfBirth", student.dateOfBirth || "");
       setValue("gender", student.gender || "");
       setValue("email", student.email || "");
+      setValue("givenEmail", student.givenEmail || "");
       setValue("phone", student.phone || "");
       setValue("secondPhone", student.secondPhone || "");
       setValue("nationality", student.nationality || "");
@@ -67,6 +68,7 @@ export const StudentDetails: React.FC = () => {
           options={genderOptions}
         />
         <FormInputB label="Email" name="email" type="email" required />
+        <FormInputB label="Given Email" name="givenEmail" type="email" />
         <FormInputB
           label="Phone"
           name="phone"

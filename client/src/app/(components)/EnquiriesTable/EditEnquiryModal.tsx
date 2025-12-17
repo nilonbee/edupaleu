@@ -175,7 +175,8 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
         firstFollowUpRemarks: data.firstFollowUpRemarks || undefined,
         secondFollowUpRemarks: data.secondFollowUpRemarks || undefined,
         thirdFollowUpRemarks: data.thirdFollowUpRemarks || undefined,
-        remarks: data.remarks || undefined,
+        // Send empty string to clear remarks (don't use undefined which skips the update)
+        remarks: data.remarks ?? "",
         // Send null explicitly when "None" is selected to clear the assignee
         assignedToId: data.assignedToId
           ? parseInt(data.assignedToId, 10)

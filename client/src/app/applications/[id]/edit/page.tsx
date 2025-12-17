@@ -87,12 +87,12 @@ const EditApplicationPage = () => {
         // Check both documents array and student.marriageCertificatePath
         let marriageCert: ApplicationDocument | undefined = undefined;
         const studentForMarriageCert = appData.student as any;
-        
+
         // First, check if marriage certificate exists in documents array
         const marriageCertDoc = (appData.documents || []).find(
           (doc) => doc.documentType === "MARRIAGE_CERTIFICATE"
         );
-        
+
         if (marriageCertDoc) {
           // Marriage certificate found in documents array
           const fileId = fileIdMap.get("MARRIAGE_CERTIFICATE");
@@ -110,7 +110,9 @@ const EditApplicationPage = () => {
             studentForMarriageCert?.marriageCertificatePath;
           if (marriageCertPath) {
             try {
-              const { fetchS3Document } = await import("@/utils/fetchS3Document");
+              const { fetchS3Document } = await import(
+                "@/utils/fetchS3Document"
+              );
               const fileId = await fetchS3Document(
                 marriageCertPath,
                 "marriage-certificate.pdf",
@@ -205,7 +207,9 @@ const EditApplicationPage = () => {
               | "FEMALE"
               | "OTHER") || "OTHER",
           email: apiStudent.email,
+          givenEmail: fullStudentData.givenEmail || undefined,
           phone: fullStudentData.phone,
+          secondPhone: fullStudentData.secondPhone || undefined,
           nationality: fullStudentData.nationality,
           passportNumber: fullStudentData.passportNumber,
           displayPicture: fullStudentData.displayPicture,

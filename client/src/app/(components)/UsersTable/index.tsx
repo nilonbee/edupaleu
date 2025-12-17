@@ -188,12 +188,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({ onEdit, onCreate }) => {
     async (user: User) => {
       const action = user.isActive ? "deactivate" : "activate";
       const actionPast = user.isActive ? "deactivated" : "activated";
-      
-      if (
-        !confirm(
-          `Are you sure you want to ${action} ${user.email}?`
-        )
-      ) {
+
+      if (!confirm(`Are you sure you want to ${action} ${user.email}?`)) {
         return;
       }
 
@@ -360,7 +356,15 @@ export const UsersTable: React.FC<UsersTableProps> = ({ onEdit, onCreate }) => {
         },
       },
     ],
-    [handleView, handleEdit, handleDelete, handleResendInvite, handleToggleActive, getRoleColor, currentUser]
+    [
+      handleView,
+      handleEdit,
+      handleDelete,
+      handleResendInvite,
+      handleToggleActive,
+      getRoleColor,
+      currentUser,
+    ]
   );
 
   // Loading state
@@ -485,7 +489,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ onEdit, onCreate }) => {
             setFilterModel(newModel);
             setPaginationModel((prev) => ({ ...prev, page: 0 }));
           }}
-          pageSizeOptions={[10, 25, 50, 100]}
+          pageSizeOptions={[10, 25, 50, 100, { value: -1, label: "All" }]}
           loading={isLoading}
           disableRowSelectionOnClick
           className="border-0"
