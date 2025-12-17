@@ -11,8 +11,67 @@ import {
   Phone,
   User,
   Calendar,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
+
+// Parse remarks string to extract text, user, and timestamp
+// Format: "timestamp||text||user" (timestamp first for sortability)
+const parseRemarks = (
+  remarks: string | null | undefined
+): { text: string; user: string; timestamp: string } | null => {
+  if (!remarks) return null;
+  const parts = remarks.split("||");
+  if (parts.length >= 3) {
+    // New format: timestamp||text||user
+    return {
+      timestamp: parts[0] || "",
+      text: parts[1] || "",
+      user: parts[2] || "",
+    };
+  } else if (parts.length === 2) {
+    // Could be old format (text||user) or partial - check if first part looks like ISO date
+    if (parts[0].match(/^\d{4}-\d{2}-\d{2}T/)) {
+      // Looks like new format with missing user
+      return { timestamp: parts[0], text: parts[1], user: "" };
+    }
+    // Old format: text||user (no timestamp)
+    return { text: parts[0], user: parts[1], timestamp: "" };
+  }
+  // Legacy format without delimiter - just text
+  return { text: remarks, user: "", timestamp: "" };
+};
+
+// Get initials from name
+const getInitials = (name: string): string => {
+  if (!name) return "?";
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name[0]?.toUpperCase() || "?";
+};
+
+// Get consistent color based on username string (hash-based)
+const getColorFromUsername = (username: string): string => {
+  if (!username) return "bg-gray-500";
+  const colors = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-purple-500",
+    "bg-pink-500",
+    "bg-indigo-500",
+    "bg-orange-500",
+    "bg-teal-500",
+    "bg-cyan-500",
+  ];
+  // Simple hash from username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 export default function ViewEnquiryPage() {
   const params = useParams();
@@ -189,13 +248,38 @@ export default function ViewEnquiryPage() {
           </div>
         )}
 
-        {/* Remarks */}
+        {/* Next Step */}
         {enquiry.remarks && (
           <div>
-            <h2 className="text-lg font-semibold mb-4">Remarks</h2>
-            <p className="p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">
-              {enquiry.remarks}
-            </p>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Next Step
+            </h2>
+            {(() => {
+              const parsed = parseRemarks(enquiry.remarks);
+              if (!parsed) return null;
+              return (
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <p className="text-gray-800 whitespace-pre-wrap mb-3">
+                    {parsed.text}
+                  </p>
+                  {parsed.user && (
+                    <div className="flex items-center gap-2 pt-3 border-t border-blue-200">
+                      <div
+                        className={`w-8 h-8 rounded-full ${getColorFromUsername(
+                          parsed.user
+                        )} flex items-center justify-center text-white text-sm font-bold`}
+                      >
+                        {getInitials(parsed.user)}
+                      </div>
+                      <p className="text-sm font-medium text-gray-700">
+                        {parsed.user}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 

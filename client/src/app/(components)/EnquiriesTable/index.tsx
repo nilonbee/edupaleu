@@ -61,6 +61,89 @@ const getAgentColor = (userId?: number): string => {
   return colors[userId % colors.length] || "bg-gray-500";
 };
 
+// Next Step color mapping - vibrant colors for visual distinction
+const getNextStepColors = (
+  index: number
+): { bg: string; border: string; text: string } => {
+  const colorSchemes = [
+    { bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-800" },
+    { bg: "bg-green-50", border: "border-green-300", text: "text-green-800" },
+    {
+      bg: "bg-purple-50",
+      border: "border-purple-300",
+      text: "text-purple-800",
+    },
+    { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-800" },
+    { bg: "bg-rose-50", border: "border-rose-300", text: "text-rose-800" },
+    { bg: "bg-cyan-50", border: "border-cyan-300", text: "text-cyan-800" },
+    {
+      bg: "bg-indigo-50",
+      border: "border-indigo-300",
+      text: "text-indigo-800",
+    },
+    { bg: "bg-teal-50", border: "border-teal-300", text: "text-teal-800" },
+  ];
+  return colorSchemes[index % colorSchemes.length];
+};
+
+// Parse remarks string to extract text, user, and timestamp
+// Format: "timestamp||text||user" (timestamp first for sortability)
+const parseRemarks = (
+  remarks: string | null | undefined
+): { text: string; user: string; timestamp: string } | null => {
+  if (!remarks) return null;
+  const parts = remarks.split("||");
+  if (parts.length >= 3) {
+    // New format: timestamp||text||user
+    return {
+      timestamp: parts[0] || "",
+      text: parts[1] || "",
+      user: parts[2] || "",
+    };
+  } else if (parts.length === 2) {
+    // Could be old format (text||user) or partial - check if first part looks like ISO date
+    if (parts[0].match(/^\d{4}-\d{2}-\d{2}T/)) {
+      // Looks like new format with missing user
+      return { timestamp: parts[0], text: parts[1], user: "" };
+    }
+    // Old format: text||user (no timestamp)
+    return { text: parts[0], user: parts[1], timestamp: "" };
+  }
+  // Legacy format without delimiter - just text
+  return { text: remarks, user: "", timestamp: "" };
+};
+
+// Get initials from name
+const getInitials = (name: string): string => {
+  if (!name) return "?";
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name[0]?.toUpperCase() || "?";
+};
+
+// Get consistent color based on username string (hash-based)
+const getColorFromUsername = (username: string): string => {
+  if (!username) return "bg-gray-500";
+  const colors = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-purple-500",
+    "bg-pink-500",
+    "bg-indigo-500",
+    "bg-orange-500",
+    "bg-teal-500",
+    "bg-cyan-500",
+  ];
+  // Simple hash from username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
   onEdit,
   onCreate,
@@ -75,7 +158,7 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
     pageSize: 10,
   });
   const [sortModel, setSortModel] = useState<GridSortModel>([
-    { field: "createdAt", sort: "desc" },
+    { field: "remarks", sort: "desc" },
   ]);
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
     items: [],
@@ -109,9 +192,12 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
       // For now, we'll handle it in the backend by searching country name
       // But if it's a number, use it directly
       const countryValue = countryFilterItem.value;
-      if (typeof countryValue === 'number') {
+      if (typeof countryValue === "number") {
         params.countryId = countryValue;
-      } else if (typeof countryValue === 'string' && !isNaN(parseInt(countryValue, 10))) {
+      } else if (
+        typeof countryValue === "string" &&
+        !isNaN(parseInt(countryValue, 10))
+      ) {
         params.countryId = parseInt(countryValue, 10);
       }
     }
@@ -139,7 +225,7 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
     () => countriesResponse?.data || [],
     [countriesResponse]
   );
-  
+
   const agents = useMemo(() => {
     if (!usersResponse) return [];
     return (usersResponse.data || []).filter(
@@ -398,6 +484,62 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
         },
       },
       {
+        field: "remarks",
+        headerName: "Next Step",
+        width: 130,
+        filterable: false,
+        flex: 0,
+        sortable: true,
+        renderCell: (params) => {
+          const parsed = parseRemarks(params.row.remarks);
+          if (!parsed || !parsed.text) {
+            return (
+              <Typography variant="body2" className="text-gray-400 italic">
+                -
+              </Typography>
+            );
+          }
+
+          const colors = getNextStepColors(params.row.id % 8);
+
+          return (
+            <div
+              className={`flex flex-col w-full rounded-xl m-1 p-1 ${colors.bg} ${colors.border}`}
+              title={`${parsed.text}${parsed.user ? ` ~ ${parsed.user}` : ""}`}
+            >
+              <Typography
+                variant="body2"
+                className={`${colors.text} font-medium text-xs`}
+                sx={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {parsed.text}
+              </Typography>
+              {parsed.user && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <div
+                    className={`w-5 h-5 rounded-xl flex items-center justify-center text-[10px] font-bold text-white ${getColorFromUsername(
+                      parsed.user
+                    )}`}
+                  >
+                    {getInitials(parsed.user)}
+                  </div>
+                  <Typography
+                    variant="caption"
+                    className="text-gray-500 text-xs"
+                  >
+                    {parsed.user}
+                  </Typography>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
         field: "createdBy",
         headerName: "Created By",
         width: 100,
@@ -406,6 +548,23 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
         renderCell: (params) => (
           <Typography variant="body2">{params.row.createdBy || "-"}</Typography>
         ),
+      },
+      {
+        field: "updatedAt",
+        headerName: "Updated",
+        width: 100,
+        flex: 0,
+        filterable: true,
+        type: "date",
+        valueGetter: (value) => (value ? new Date(value) : null),
+        renderCell: (params) => {
+          if (!params.value) return "-";
+          return (
+            <Typography variant="body2">
+              {params.value.toLocaleDateString()}
+            </Typography>
+          );
+        },
       },
       {
         field: "createdAt",
@@ -450,7 +609,14 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
         },
       },
     ],
-    [handleView, handleEdit, handleDelete, handleCreateApplication, agents, countries]
+    [
+      handleView,
+      handleEdit,
+      handleDelete,
+      handleCreateApplication,
+      agents,
+      countries,
+    ]
   );
 
   if (error) {

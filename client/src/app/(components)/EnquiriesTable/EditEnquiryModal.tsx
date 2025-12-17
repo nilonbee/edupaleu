@@ -75,6 +75,26 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
 
   const cvDocument = watch("cvDocument");
 
+  // Parse remarks to extract just the text (without user info)
+  // Format: "timestamp||text||user" (timestamp first for sortability)
+  const parseRemarksText = (remarks: string | null | undefined): string => {
+    if (!remarks) return "";
+    const parts = remarks.split("||");
+    if (parts.length >= 3) {
+      // New format: timestamp||text||user
+      return parts[1] || "";
+    } else if (parts.length === 2) {
+      // Check if first part looks like ISO date
+      if (parts[0].match(/^\d{4}-\d{2}-\d{2}T/)) {
+        return parts[1] || "";
+      }
+      // Old format: text||user
+      return parts[0] || "";
+    }
+    // Legacy format without delimiter
+    return remarks;
+  };
+
   // Populate form when enquiry data loads
   useEffect(() => {
     if (enquiry) {
@@ -87,7 +107,7 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
         firstFollowUpRemarks: enquiry.firstFollowUpRemarks || "",
         secondFollowUpRemarks: enquiry.secondFollowUpRemarks || "",
         thirdFollowUpRemarks: enquiry.thirdFollowUpRemarks || "",
-        remarks: enquiry.remarks || "",
+        remarks: parseRemarksText(enquiry.remarks),
         assignedToId: enquiry.assignedToId?.toString() || "",
         countryId: enquiry.countryId?.toString() || "",
       });
@@ -156,9 +176,10 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
         secondFollowUpRemarks: data.secondFollowUpRemarks || undefined,
         thirdFollowUpRemarks: data.thirdFollowUpRemarks || undefined,
         remarks: data.remarks || undefined,
+        // Send null explicitly when "None" is selected to clear the assignee
         assignedToId: data.assignedToId
           ? parseInt(data.assignedToId, 10)
-          : undefined,
+          : null,
         countryId: data.countryId ? parseInt(data.countryId, 10) : undefined,
       }).unwrap();
 
@@ -315,7 +336,7 @@ export const EditEnquiryModal: React.FC<EditEnquiryModalProps> = ({
 
             <TextField
               {...register("remarks")}
-              label="Remarks"
+              label="Next Step"
               multiline
               rows={3}
               fullWidth
