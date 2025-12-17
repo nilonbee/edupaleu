@@ -84,6 +84,7 @@ export const getAllEnquiries = async (req: Request, res: Response): Promise<void
             'updatedAt',
             'assignedToId',
             'countryId',
+            'remarks',
         ];
 
         if (validSortFields.includes(sort_by as string)) {
@@ -91,9 +92,9 @@ export const getAllEnquiries = async (req: Request, res: Response): Promise<void
                 [sort_by as string]: order,
             };
         } else {
-            // Default to createdAt if invalid field
+            // Default to updatedAt if invalid field (to prioritize recently updated enquiries)
             orderBy = {
-                createdAt: order,
+                updatedAt: order,
             };
         }
     }
@@ -218,6 +219,10 @@ export const createEnquiry = async (req: Request, res: Response): Promise<void> 
         throw new BadRequestError('Invalid countryId');
     }
 
+    // Format remarks with timestamp first for sortability: "timestamp||text||user"
+    const userName = currentUser.name || `${currentUser.firstName} ${currentUser.lastName}`;
+    const formattedRemarks = remarks ? `${new Date().toISOString()}||${remarks}||${userName}` : null;
+
     const enquiry = await prisma.enquiry.create({
         data: {
             firstName,
@@ -228,8 +233,8 @@ export const createEnquiry = async (req: Request, res: Response): Promise<void> 
             firstFollowUpRemarks,
             secondFollowUpRemarks,
             thirdFollowUpRemarks,
-            remarks,
-            createdBy: currentUser.name || `${currentUser.firstName} ${currentUser.lastName}`,
+            remarks: formattedRemarks,
+            createdBy: userName,
             assignedToId: assignedToId ? parseInt(assignedToId, 10) : null,
             countryId: parseInt(countryId, 10),
         },
@@ -301,7 +306,13 @@ export const updateEnquiry = async (req: Request, res: Response): Promise<void> 
     if (firstFollowUpRemarks !== undefined) updateData.firstFollowUpRemarks = firstFollowUpRemarks;
     if (secondFollowUpRemarks !== undefined) updateData.secondFollowUpRemarks = secondFollowUpRemarks;
     if (thirdFollowUpRemarks !== undefined) updateData.thirdFollowUpRemarks = thirdFollowUpRemarks;
-    if (remarks !== undefined) updateData.remarks = remarks;
+
+    // When remarks is updated, format with timestamp first for sortability: "timestamp||text||user"
+    if (remarks !== undefined) {
+        const currentUser = (req as any).user;
+        const userName = currentUser.name || `${currentUser.firstName} ${currentUser.lastName}`;
+        updateData.remarks = remarks ? `${new Date().toISOString()}||${remarks}||${userName}` : null;
+    }
     if (assignedToId !== undefined) {
         updateData.assignedToId = assignedToId ? parseInt(assignedToId, 10) : null;
     }

@@ -83,7 +83,7 @@ export interface UpdateEnquiryRequest {
     secondFollowUpRemarks?: string;
     thirdFollowUpRemarks?: string;
     remarks?: string;
-    assignedToId?: number;
+    assignedToId?: number | null;
     countryId?: number;
 }
 

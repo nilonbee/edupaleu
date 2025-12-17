@@ -288,7 +288,7 @@ export const CreateEnquiryModal: React.FC<CreateEnquiryModalProps> = ({
 
             <TextField
               {...register("remarks")}
-              label="Remarks"
+              label="Next Step"
               multiline
               rows={3}
               fullWidth
