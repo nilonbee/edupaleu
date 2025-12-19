@@ -250,54 +250,51 @@ export const IntendedPrograms: React.FC = () => {
         Intended Programs
       </h2>
       <p className="text-gray-600 mb-6">
-        Add up to 4 programs you intend to apply for. Drag and drop to reorder
-        and set priorities automatically.
+        Add your intended programs. You can add custom programmes by entering the programme and university names. Drag and drop to reorder and set priorities automatically.
       </p>
 
-      {intendedPrograms.length < 4 && (
-        <div className="bg-gray-50 p-6 rounded-lg mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormInputB
-              label="Programme"
-              name="programProgramme"
-              placeholder="e.g., Computer Science"
-            />
-            <FormInputB
-              label="University"
-              name="programUniversity"
-              placeholder="e.g., University of Toronto"
-            />
-          </div>
+      <div className="bg-gray-50 p-6 rounded-lg mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormInputB
+            label="Programme"
+            name="programProgramme"
+            placeholder="e.g., Computer Science"
+          />
+          <FormInputB
+            label="University"
+            name="programUniversity"
+            placeholder="e.g., University of Toronto"
+          />
+        </div>
 
-          <div className="mt-4">
+        <div className="mt-4">
+          <Button
+            type="button"
+            onClick={handleAddOrUpdateProgram}
+            variant="primary"
+            size="md"
+          >
+            {editingIndex !== null ? "Update Program" : "Add Program"}
+          </Button>
+          {editingIndex !== null && (
             <Button
               type="button"
-              onClick={handleAddOrUpdateProgram}
-              variant="primary"
+              onClick={handleCancelEdit}
+              variant="secondary"
               size="md"
+              className="ml-2"
             >
-              {editingIndex !== null ? "Update Program" : "Add Program"}
+              Cancel
             </Button>
-            {editingIndex !== null && (
-              <Button
-                type="button"
-                onClick={handleCancelEdit}
-                variant="secondary"
-                size="md"
-                className="ml-2"
-              >
-                Cancel
-              </Button>
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Draggable Programs List */}
       {intendedPrograms.length > 0 && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">
-            Added Programs ({intendedPrograms.length}/4)
+            Added Programs ({intendedPrograms.length})
           </h3>
           <p className="text-sm text-gray-500 mb-4">
             Drag programs to reorder. Priority updates automatically (1 =
@@ -332,15 +329,6 @@ export const IntendedPrograms: React.FC = () => {
       {intendedPrograms.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           No programs added yet. Please add at least one intended program.
-        </div>
-      )}
-
-      {intendedPrograms.length >= 4 && (
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <p className="text-blue-700 text-sm">
-            You have reached the maximum of 4 programs. You can edit, reorder,
-            or remove existing programs if needed.
-          </p>
         </div>
       )}
     </div>
