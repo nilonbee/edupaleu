@@ -1,5 +1,5 @@
 // components/steps/DocumentsUpload.tsx
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   addDocument,
@@ -10,9 +10,70 @@ import { logger } from "@/utils/logger";
 import { showToast } from "@/utils/toast";
 import { APPLICATION_CONSTANTS } from "@/utils/constants";
 
+interface CustomDocumentField {
+  id: string;
+  label: string;
+  documentType: string;
+}
+
 export const DocumentsUpload: React.FC = () => {
   const dispatch = useDispatch();
   const documents = useSelector(selectDocuments);
+  const [customFields, setCustomFields] = useState<CustomDocumentField[]>([]);
+  const [showAddField, setShowAddField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+
+  // Helper function to extract a clean label from fileName
+  const getLabelFromFileName = (fileName: string): string => {
+    // Remove file extension
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+    // Replace underscores and hyphens with spaces, capitalize first letter
+    const cleaned = nameWithoutExt
+      .replace(/[_-]/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+    return cleaned || "Custom Document";
+  };
+
+  // Restore custom fields from loaded documents (for edit mode)
+  useEffect(() => {
+    const customDocs = documents.filter((doc) =>
+      doc.documentType.startsWith("CUSTOM_")
+    );
+
+    if (customDocs.length > 0) {
+      setCustomFields((prevFields) => {
+        // Get existing document types
+        const existingTypes = new Set(prevFields.map((f) => f.documentType));
+
+        // Find custom docs that don't have fields yet
+        const newCustomDocs = customDocs.filter(
+          (doc) => !existingTypes.has(doc.documentType)
+        );
+
+        if (newCustomDocs.length > 0) {
+          const restoredFields: CustomDocumentField[] = newCustomDocs.map(
+            (doc) => {
+              // Try to get label from localStorage first
+              const storedLabel = localStorage.getItem(
+                `custom_doc_label_${doc.documentType}`
+              );
+
+              return {
+                id: doc.documentType,
+                label: storedLabel || getLabelFromFileName(doc.fileName),
+                documentType: doc.documentType,
+              };
+            }
+          );
+
+          logger.log("Restored custom document fields:", restoredFields.length);
+          return [...prevFields, ...restoredFields];
+        }
+
+        return prevFields;
+      });
+    }
+  }, [documents]);
 
   const documentTypes = [
     { value: "OL_CERTIFICATE", label: "OL Certificate", required: true },
@@ -177,6 +238,71 @@ export const DocumentsUpload: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  // Handle adding a new custom document field
+  const handleAddCustomField = useCallback(() => {
+    if (!newFieldLabel.trim()) {
+      showToast.error("Please enter a document name");
+      return;
+    }
+
+    const uniqueId = `CUSTOM_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
+    const label = newFieldLabel.trim();
+
+    const newField: CustomDocumentField = {
+      id: uniqueId,
+      label: label,
+      documentType: uniqueId,
+    };
+
+    // Store label in localStorage for persistence
+    localStorage.setItem(`custom_doc_label_${uniqueId}`, label);
+
+    setCustomFields((prev) => [...prev, newField]);
+    setNewFieldLabel("");
+    setShowAddField(false);
+    showToast.success("Document field added");
+  }, [newFieldLabel]);
+
+  // Handle removing a custom document field
+  const handleRemoveCustomField = useCallback(
+    (documentType: string) => {
+      // Check if there's an uploaded document for this field
+      const doc = documents.find((d) => d.documentType === documentType);
+
+      if (doc) {
+        // If document exists, remove it first
+        handleRemoveDocument(documentType);
+      }
+
+      // Remove the custom field
+      setCustomFields((prev) =>
+        prev.filter((field) => field.documentType !== documentType)
+      );
+
+      // Clean up localStorage
+      localStorage.removeItem(`custom_doc_label_${documentType}`);
+
+      if (!doc) {
+        showToast.success("Document field removed");
+      }
+    },
+    [documents, handleRemoveDocument]
+  );
+
+  // Get all document types (predefined + custom)
+  const allDocumentTypes = [
+    ...documentTypes.map((dt) => ({ ...dt, isCustom: false })),
+    ...customFields.map((field) => ({
+      value: field.documentType,
+      label: field.label,
+      required: false,
+      isCustom: true,
+    })),
+  ];
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
@@ -194,7 +320,7 @@ export const DocumentsUpload: React.FC = () => {
           </div>
           <div className="text-right">
             <div className="text-lg font-bold text-blue-800">
-              {documents.length} / {documentTypes.length}
+              {documents.length} / {allDocumentTypes.length}
             </div>
             <div className="text-sm text-blue-600">Documents ready</div>
           </div>
@@ -203,7 +329,7 @@ export const DocumentsUpload: React.FC = () => {
 
       {/* Simplified Upload Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {documentTypes.map((docType) => {
+        {allDocumentTypes.map((docType) => {
           const document = getDocumentInfo(docType.value);
           const hasFile = hasDocument(docType.value);
 
@@ -223,17 +349,40 @@ export const DocumentsUpload: React.FC = () => {
                     <span className="text-red-500 ml-1">*</span>
                   )}
                 </h3>
-                <span
-                  className={`text-sm font-medium ${
-                    hasFile ? "text-green-600" : "text-gray-600"
-                  }`}
-                >
-                  {hasFile
-                    ? "✅ Ready"
-                    : docType.required
-                    ? "📄 Required"
-                    : "📄 Optional"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-sm font-medium ${
+                      hasFile ? "text-green-600" : "text-gray-600"
+                    }`}
+                  >
+                    {hasFile
+                      ? "✅ Ready"
+                      : docType.required
+                      ? "📄 Required"
+                      : "📄 Optional"}
+                  </span>
+                  {docType.isCustom && (
+                    <button
+                      onClick={() => handleRemoveCustomField(docType.value)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      title="Remove document field"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {hasFile ? (
@@ -340,6 +489,74 @@ export const DocumentsUpload: React.FC = () => {
             </div>
           );
         })}
+
+        {/* Add Document Field Button */}
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-colors">
+          {showAddField ? (
+            <div className="w-full space-y-3">
+              <input
+                type="text"
+                value={newFieldLabel}
+                onChange={(e) => setNewFieldLabel(e.target.value)}
+                placeholder="Enter document name (e.g., Recommendation Letter)"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleAddCustomField();
+                  } else if (e.key === "Escape") {
+                    setShowAddField(false);
+                    setNewFieldLabel("");
+                  }
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddCustomField}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Add Field
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddField(false);
+                    setNewFieldLabel("");
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAddField(true)}
+              className="flex flex-col items-center justify-center space-y-2 text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-gray-700 font-medium">Add Document</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Add additional document field
+                </p>
+              </div>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
