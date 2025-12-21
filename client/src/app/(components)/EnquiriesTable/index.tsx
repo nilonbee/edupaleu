@@ -229,7 +229,8 @@ export const EnquiriesTable: React.FC<EnquiriesTableProps> = ({
   const agents = useMemo(() => {
     if (!usersResponse) return [];
     return (usersResponse.data || []).filter(
-      (user) => user.role === "agent" || user.role === "admin"
+      (user) =>
+        user.role === "agent" || user.role === "admin" || user.role === "user"
     );
   }, [usersResponse]);
 
